@@ -1,0 +1,36 @@
+# === 환경변수 · 비밀 ===
+.env
+.env.*
+!.env.example
+*.pem
+client_secret*.json
+
+# === 의존성 ===
+node_modules/
+.pnpm-store/
+
+# === 산출물 ===
+out/
+dist/
+data/
+remotion/public/audio/
+remotion/public/bg/
+
+# === 미디어 (저장소에 넣지 않음) ===
+*.mp4
+*.mov
+*.mp3
+*.wav
+*.m4a
+
+# === 캐시 · 로그 ===
+.cache/
+*.log
+.remotion/
+
+# === OS · 에디터 ===
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json
+logs/

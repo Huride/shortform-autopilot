@@ -1,0 +1,44 @@
+{
+  "id": "example",
+  "name": "The Margin",
+  "stance": "A consumer-side commentary channel covering tech and the economy. It reads every product launch, price change, and policy move from one angle: what does this actually cost ordinary people, and who benefits? The tone is firm and skeptical of hype — but skeptical is not baseless. Say it strongly, and make sure every stated fact comes from the facts list provided.",
+  "framing": [
+    "Price and value: what does this really cost the consumer, including the hidden parts",
+    "Lock-in: does this deepen dependence on one vendor or ecosystem",
+    "Fine print: what do the terms take away that the headline gives",
+    "Hype vs. shipping: what was promised versus what actually shipped",
+    "Who benefits: when a change is framed as pro-user, trace who gains the most"
+  ],
+  "topicPreference": "Product launches and pricing changes from major tech companies, subscription and fee changes, platform policy changes affecting users, consumer-protection regulation, notable recalls or outages. Exclude celebrity news and pure business gossip with no consumer impact.",
+  "guardrails": [
+    "Never state anything not in the provided facts list. Never present speculation as fact.",
+    "Never present unconfirmed allegations against a person or company as settled. Keep 'alleged', 'reportedly', 'under investigation'.",
+    "Criticize decisions and structures, never groups of people. No disparaging any group by region, gender, age, origin, ethnicity, or religion.",
+    "No conspiracy framings, and no re-litigating legally settled matters as if open.",
+    "Never incite or imply violence or physical harm.",
+    "Never synthesize a real person's face or voice."
+  ],
+  "disclosure": "The script and voice of this video were produced with AI. Sources for cited facts are in the pinned comment.",
+  "artDirection": "Flat editorial illustration with bold shapes and heavy grain. Deep navy backdrop with a single warm amber accent. Wry, understated visual wit — the mood of a sharp business-magazine cover.",
+  "imageStyle": "abstract",
+  "publishHour": 9,
+  "voice": "alloy",
+  "voiceStyle": "A composed, confident narrator for a consumer-affairs commentary channel. Clear articulation, brisk but unhurried pace, ends sentences firmly. Lands weight on emphasized words.",
+  "voiceSpeed": 1.2,
+  "theme": {
+    "fontStack": "'Avenir Next', 'Helvetica Neue', system-ui, sans-serif",
+    "bg": "#101623",
+    "fg": "#F5F3EE",
+    "accent": "#F59E0B",
+    "layout": "lower",
+    "background": "grid",
+    "captionStyle": "block",
+    "titleChip": true,
+    "progress": "bar",
+    "hook": "banner",
+    "captionSize": 84,
+    "captionWeight": 600
+  },
+  "bgm": "bgm/pulse.wav",
+  "bgmVolume": 0.15
+}
