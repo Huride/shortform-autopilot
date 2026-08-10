@@ -13,6 +13,17 @@ daily channel. The docs include every trap we hit in production (OAuth 403s,
 YouTube's private-lock for un-audited API projects, token loss, headless-Chrome
 OOM on long renders, timezone-idempotency bugs) so you don't have to hit them.
 
+## Demo
+
+<p align="center">
+  <img src="demo/preview.gif" width="300" alt="Demo preview — hook card, count-up stat, keyword stamp" />
+</p>
+
+▶ **[Watch the full 50-second demo with sound](demo/demo.mp4)** — generated
+end-to-end by this repo with zero manual editing: the example channel config
+plus a hand-written fact brief in, finished video out (script → voice →
+background art → animated infographics → render).
+
 ## What's inside
 
 ```

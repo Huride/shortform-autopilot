@@ -18,6 +18,7 @@ remotion/public/bg/
 
 # === 미디어 (저장소에 넣지 않음) ===
 *.mp4
+!demo/demo.mp4
 *.mov
 *.mp3
 *.wav
