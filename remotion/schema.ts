@@ -104,6 +104,8 @@ export type ShortProps = {
    * 유튜브와 인스타에 함께 나간다.
    */
   brandLogo?: string;
+  /** Watermark / outro tagline (channel config `tagline`). */
+  brandTagline?: string;
 };
 
 export const COMPOSITION_ID = 'InfoShort';

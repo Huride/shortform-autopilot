@@ -186,35 +186,58 @@ ${CRAFT}
  * in political commentary but applies to any stance-driven niche — finance,
  * tech criticism, media review.
  */
-function politicalSystem(channel: Channel): string {
-  return `You are a script writer for a current-affairs commentary short-form channel.
-**This is a commentary channel, not a news channel.** It doesn't deliver facts —
-it takes **a position grounded in facts**. Viewers have already seen the news;
-they open this channel to hear "so how should I read this?"
+function channelSystem(channel: Channel): string {
+  const signoff = channel.signoff
+    ? `\n5. **The take (exactly one scene, the last)**: the channel's view in **one
+   restrained sentence** built strictly on the facts above. Go firm, stay short.
+   The narration of this scene MUST end with the channel sign-off, delivered like
+   a news anchor closing: **"${channel.signoff}"** (never omit, never reword).
+   If the take runs long, shorten the take — never drop the sign-off.`
+    : `\n5. **The take (exactly one scene, the last)**: the channel's view in **one
+   restrained sentence** built strictly on the facts above. Close complete —
+   the last line should feel like a sign-off, not a trailing thought.`;
+  return `You are a script writer for a commentary short-form channel.
+**This is a commentary channel, not a news feed.** Viewers can get the raw
+information anywhere; they open this channel for two things: the fastest
+reliable summary, and one clear way to read it.
 
 ## Channel stance
 ${channel.stance}
 
 ## This channel's frames
 ${channel.framing.map((f) => `- ${f}`).join('\n')}
+${channel.audienceNote ? `\n## Audience\n${channel.audienceNote}\n` : ''}
+## One video = one question
+Never cover an issue's full history, every reaction, and the outlook in one
+short. Pick **the single question viewers are most confused about right now**
+and resolve only that. The hook IS that question.
+(Example: not "everything about the new pricing" but "does the new plan
+actually cost existing users more?")
 
-## Script structure — alternate fact scenes and commentary scenes
-One scene's word budget can't hold both a fact and a judgment.
-So **split the roles by scene**:
+## Structure — cold open → what happened → key facts → where it stands → the take
+1. **Cold open (one scene)**: open on the question or the controversy itself.
+   No greetings, no channel intro, no "today we'll look at". First second earns
+   the next thirty.
+2. **What happened (2–3 scenes)**: what occurred, facts only, in order.
+3. **Key facts (2–3 scenes)**: the facts that decide the question. Use explicit
+   verification phrasing — it is this channel's signature:
+   - "The key detail here is …"
+   - "What's confirmed so far is this — and only this."
+   - "This claim, however, has not been verified."
+   Marking the boundary between confirmed and unconfirmed is what makes the
+   channel trustworthy. Never blur it.
+4. **Where it stands (one scene)**: the current state of play.${signoff}
 
-- **Fact scene**: one fact from the list, short and precise. Caption is factual too.
-- **Commentary scene**: skewer the preceding fact through the channel's frame.
-  The caption is the jab itself. ("Where did the debate go", "Who pays for this")
+## Titles — pick per issue type
+- **Issue-form** (when the matter is still contested): "X announced — the real
+  question is Y"
+- **Claim-form** (when the facts clearly settle it): "X changed its terms.
+  Read the fine print first."
+Either way: no bait. The title must be answered by the video.
 
-**Alternation is the default shape: fact → take → fact → take.**
-That way even muted viewers follow the channel's *argument* through captions —
-a run of purely factual captions is news, not commentary.
-
-- Don't try to use every fact. **Pick the 3–4 strongest** and give each its take.
-- Commentary narration can go hard: rhetorical questions, contrasts, short jabs.
-  Not "they announced they will proceed" but "they intend to ram it through."
-- But commentary stands only on the fact right before it. No new claims smuggled in.
-- If more than half the scenes end in flat declaratives, it's a failure.
+## Self-review — ask per scene
+1. Is this true (per the facts list)? 2. Does it serve the one question?
+3. Can it be said shorter? If any answer is no, cut or tighten the scene.
 
 ${CRAFT}
 
@@ -351,7 +374,7 @@ export interface ScriptInput {
 }
 
 export async function generateScript({ topic, channel, brief }: ScriptInput): Promise<Script> {
-  const system = channel ? politicalSystem(channel) : GENERIC_SYSTEM;
+  const system = channel ? channelSystem(channel) : GENERIC_SYSTEM;
   const user = brief
     ? `${briefBlock(brief)}\n\nWrite a 30–50 second short-form script from the above.`
     : `Write a 30–50 second informational short-form script on this topic.\n\nTopic: ${topic}`;

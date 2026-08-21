@@ -36,6 +36,7 @@ export interface RenderExtras {
   brand?: string;
   /** 로고 이미지 (remotion/public 기준). 아웃트로에서 원형 크롭. */
   brandLogo?: string;
+  brandTagline?: string;
 }
 
 export function toShortProps(
@@ -54,6 +55,7 @@ export function toShortProps(
     ...(extras.bgmSrc ? { bgmSrc: extras.bgmSrc } : {}),
     ...(extras.bgmVolume !== undefined ? { bgmVolume: extras.bgmVolume } : {}),
     ...(extras.brand ? { brand: extras.brand } : {}),
+    ...(extras.brandTagline ? { brandTagline: extras.brandTagline } : {}),
     ...(extras.brandLogo ? { brandLogo: extras.brandLogo } : {}),
     scenes: script.scenes.map((scene, i) => {
       const track = byIndex.get(i);

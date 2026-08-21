@@ -20,6 +20,22 @@ export interface Channel {
   guardrails: string[];
   /** 캡션 하단에 붙는 AI 생성 고지. */
   disclosure: string;
+  /**
+   * Channel sign-off — the fixed closing line of every script, anchor-style
+   * (e.g. "The math, not the marketing — The Margin."). Builds recognition;
+   * strongly recommended once the channel has a positioning.
+   */
+  signoff?: string;
+  /**
+   * Short brand tagline shown as an on-screen watermark and on the outro card.
+   * Usually the sign-off minus the channel name.
+   */
+  tagline?: string;
+  /**
+   * One or two sentences about who actually watches (age, vocabulary level,
+   * platform habits). Fed to the script prompt to calibrate language.
+   */
+  audienceNote?: string;
   /** 배경 이미지의 화풍. 이미지가 매번 달라도 채널 톤은 유지되게 잡는다. */
   artDirection?: string;
   /**

@@ -14,9 +14,15 @@ import type { PublishRecord, Script } from '../types.js';
  * 주의: 2020-07-28 이후 생성된 미검증 프로젝트로 올리면 전부 비공개 잠금 상태가 된다.
  * 공개 발행하려면 Google 감사(audit)를 통과해야 한다.
  */
+export interface YouTubeOptions {
+  /** ISO datetime. When set, the video uploads private with a scheduled publish time. */
+  publishAt?: string;
+}
+
 export async function publishToYouTube(
   script: Script,
   videoPath: string,
+  options: YouTubeOptions = {},
 ): Promise<PublishRecord> {
   const auth = new google.auth.OAuth2(env.youtube.clientId(), env.youtube.clientSecret());
   auth.setCredentials({ refresh_token: env.youtube.refreshToken() });
@@ -39,13 +45,22 @@ export async function publishToYouTube(
         description: description.slice(0, 5000),
         tags,
         categoryId: env.youtube.categoryId(),
-        defaultLanguage: 'ko',
-        defaultAudioLanguage: 'ko',
+        defaultLanguage: env.contentLanguage(),
+        defaultAudioLanguage: env.contentLanguage(),
       },
       status: {
-        privacyStatus: env.youtube.privacyStatus(),
-        // 아동용 여부는 반드시 선언해야 한다. 정보형 채널은 false.
+        // Scheduled publishing: upload private with publishAt and YouTube flips it
+        // public at that time. This works even before your API project passes the
+        // Google audit (which is required for direct public uploads).
+        privacyStatus: options.publishAt ? 'private' : env.youtube.privacyStatus(),
+        ...(options.publishAt ? { publishAt: new Date(options.publishAt).toISOString() } : {}),
+        // Made-for-kids must be declared explicitly. Informational channels: false.
         selfDeclaredMadeForKids: false,
+        // Realistic AI-generated content must be disclosed (platform policy, and
+        // increasingly law). Set YOUTUBE_SYNTHETIC_MEDIA=false only if your
+        // content contains no realistic synthetic media. (Cast: the field is
+        // accepted by the API but missing from older googleapis typings.)
+        ...({ containsSyntheticMedia: env.youtube.syntheticMedia() } as unknown as Record<string, never>),
       },
     },
     media: { body: createReadStream(videoPath) },

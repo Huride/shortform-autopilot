@@ -40,5 +40,8 @@
     "captionWeight": 600
   },
   "bgm": "bgm/pulse.wav",
-  "bgmVolume": 0.15
+  "bgmVolume": 0.15,
+  "signoff": "The math, not the marketing — The Margin.",
+  "tagline": "the math, not the marketing",
+  "audienceNote": "Viewers skew 35+, watch on phones with sound often off. Plain words over jargon; spell out acronyms on first use; no internet slang."
 }

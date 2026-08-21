@@ -860,9 +860,10 @@ const TitleChip: React.FC<{ text: string; theme: Theme }> = ({ text, theme }) =>
  * 로고 아웃트로. 나레이션이 끝난 뒤 훅 꺼지지 않고 채널 워드마크로 닫는다 —
  * 마지막 화면은 시청자가 채널명을 기억하는 유일한 순간이다.
  */
-const Outro: React.FC<{ brand: string; logo?: string; theme: Theme }> = ({
+const Outro: React.FC<{ brand: string; logo?: string; tagline?: string; theme: Theme }> = ({
   brand,
   logo,
+  tagline,
   theme,
 }) => {
   const frame = useCurrentFrame();
@@ -934,6 +935,21 @@ const Outro: React.FC<{ brand: string; logo?: string; theme: Theme }> = ({
             </>
           )}
         </div>
+        {tagline ? (
+          <div
+            style={{
+              fontFamily: theme.fontStack,
+              fontSize: 44,
+              fontWeight: 600,
+              letterSpacing: '0.04em',
+              color: theme.fg,
+              opacity: 0.72 * enter,
+              marginTop: 22,
+            }}
+          >
+            {tagline}
+          </div>
+        ) : null}
         <div
           style={{
             height: 10,
@@ -1022,7 +1038,30 @@ export const InfoShort: React.FC<ShortProps> = ({
   bgmVolume = 0.35,
   brand,
   brandLogo,
+  brandTagline,
 }) => {
+  // Corner watermark with the tagline — stays through body scenes, builds the
+  // channel's positioning line by repetition.
+  const taglineMark = brandTagline ? (
+    <AbsoluteFill style={{ pointerEvents: 'none' }}>
+      <div
+        style={{
+          position: 'absolute',
+          top: 42,
+          left: 48,
+          fontFamily: theme.fontStack,
+          fontSize: 30,
+          fontWeight: 700,
+          letterSpacing: '0.06em',
+          color: theme.fg,
+          opacity: 0.55,
+        }}
+      >
+        <span style={{ color: theme.accent }}>●</span> {brandTagline}
+      </div>
+    </AbsoluteFill>
+  ) : null;
+
   // 장면 경계 프레임 — Sequence 배치와 진행 표시가 같은 값을 쓴다.
   const bounds: number[] = [];
   let cursor = 0;
@@ -1079,9 +1118,12 @@ export const InfoShort: React.FC<ShortProps> = ({
         <Hook text={hook} brand={brand} theme={theme} />
       </Sequence>
 
+      {brandTagline ? (
+        <Sequence from={0} durationInFrames={scenesEnd}>{taglineMark}</Sequence>
+      ) : null}
       {brand ? (
         <Sequence from={scenesEnd} durationInFrames={OUTRO_FRAMES}>
-          <Outro brand={brand} logo={brandLogo} theme={theme} />
+          <Outro brand={brand} logo={brandLogo} tagline={brandTagline} theme={theme} />
         </Sequence>
       ) : null}
     </AbsoluteFill>

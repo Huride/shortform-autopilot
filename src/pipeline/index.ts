@@ -66,6 +66,7 @@ export async function build(job: Job): Promise<Job> {
         bgmSrc: channel?.bgm,
         bgmVolume: channel?.bgmVolume,
         brand: channel?.name,
+        brandTagline: channel?.tagline,
         brandLogo: channel?.logo,
       });
       const videoPath = await renderShort(current.id, props);
@@ -96,8 +97,12 @@ export async function publish(job: Job, platforms: Platform[]): Promise<Job> {
   if (!atLeast(current.status, 'rendered') || !videoPath || !script) {
     throw new Error(`[${current.id}] 아직 렌더되지 않았습니다 (status: ${current.status}).`);
   }
-  if (current.scheduledAt && new Date(current.scheduledAt) > new Date()) {
-    log.info(`[${current.id}] 예약 시각(${current.scheduledAt}) 전이라 건너뜁니다.`);
+  // With publishAt support the upload itself can happen early — YouTube holds it
+  // private until the scheduled moment. Set HOLD_UNTIL_SCHEDULED=true to keep the
+  // old behavior (skip until the wall clock passes scheduledAt).
+  if (process.env.HOLD_UNTIL_SCHEDULED === 'true'
+      && current.scheduledAt && new Date(current.scheduledAt) > new Date()) {
+    log.info(`[${current.id}] before scheduled time (${current.scheduledAt}); skipping.`);
     return current;
   }
 
@@ -123,7 +128,7 @@ export async function publish(job: Job, platforms: Platform[]): Promise<Job> {
       log.step(`[${current.id}] 발행 → ${platform}`);
       const record =
         platform === 'youtube'
-          ? await publishToYouTube(script, videoPath)
+          ? await publishToYouTube(script, videoPath, { publishAt: current.scheduledAt })
           : await publishToInstagram(script, current.publicUrl!);
       log.ok(`  ${record.url ?? record.remoteId}`);
       records.push(record);

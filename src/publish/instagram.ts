@@ -94,6 +94,8 @@ export async function publishToInstagram(
 
   const mediaId = await publishContainer({
     media_type: 'REELS',
+    // Cover frame offset (ms). Frame 0 of generated video is often black.
+    thumb_offset: process.env.IG_THUMB_OFFSET_MS ?? '3000',
     video_url: publicVideoUrl,
     caption,
     share_to_feed: 'true',

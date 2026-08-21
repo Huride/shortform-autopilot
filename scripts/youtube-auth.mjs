@@ -53,7 +53,12 @@ if (!clientId || !clientSecret) {
 
 const PORT = 8642;
 const REDIRECT = `http://127.0.0.1:${PORT}/callback`;
-const SCOPE = 'https://www.googleapis.com/auth/youtube.upload';
+// upload = publishing · force-ssl = read stats/comments · yt-analytics = Analytics API
+const SCOPE = [
+  'https://www.googleapis.com/auth/youtube.upload',
+  'https://www.googleapis.com/auth/youtube.force-ssl',
+  'https://www.googleapis.com/auth/yt-analytics.readonly',
+].join(' ');
 
 const authUrl =
   'https://accounts.google.com/o/oauth2/v2/auth?' +

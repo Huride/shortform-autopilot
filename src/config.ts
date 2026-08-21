@@ -112,6 +112,8 @@ export const env = {
     opsPageKey: () => opt('OPS_PAGE_KEY') ?? 'ops/daily.html',
   },
 
+  /** BCP-47 language of your content (metadata language on platforms). */
+  contentLanguage: () => opt('CONTENT_LANGUAGE') ?? 'en',
   youtube: {
     enabled: () => Boolean(opt('YOUTUBE_CLIENT_ID')),
     clientId: () => required('YOUTUBE_CLIENT_ID'),
@@ -119,6 +121,8 @@ export const env = {
     refreshToken: () => required('YOUTUBE_REFRESH_TOKEN'),
     /** 심사 통과 전에는 'private' 로 두는 것이 맞다. */
     privacyStatus: () => opt('YOUTUBE_PRIVACY_STATUS') ?? 'private',
+    /** Synthetic-media disclosure flag sent with every upload. Defaults on. */
+    syntheticMedia: () => (opt('YOUTUBE_SYNTHETIC_MEDIA') ?? 'true') === 'true',
     categoryId: () => opt('YOUTUBE_CATEGORY_ID') ?? '27', // Education
   },
 

@@ -30,13 +30,32 @@ background art → animated infographics → render).
 src/            pipeline: collect → select → brief → script → TTS → render → publish
 remotion/       video as React components: shorts (9:16) + weekly recap (16:9)
 channels/       a channel is a JSON config, not code — stance, theme, voice, BGM, schedule
-scripts/        BGM synthesizer (own the rights, zero Content ID risk), schedulers, auth helpers
+scripts/        BGM synthesizer (own the rights, zero Content ID risk), schedulers, auth helpers,
+                publish verifier, stats snapshotter, optional second daily slot
 docs/           build guide, platform setup (click-level), localization notes
 .claude/skills/ /new-channel — develop a new channel from just a topic, with an AI pair
 ```
 
 ## Feature highlights
 
+- **Scheduled publishing (publishAt)**: uploads go up private with a scheduled
+  go-public time — so a machine that renders at 6 pm can publish at 7:05 pm
+  sharp, and it works even before your YouTube API project passes Google's
+  audit (direct public uploads don't). `scripts/verify-publish.mjs` then
+  confirms each video actually flipped public (quota-free oEmbed check) and
+  alerts Telegram if one is stuck.
+- **AI-content disclosure built in**: every YouTube upload carries the
+  synthetic-media declaration (platform policy — and increasingly, law), and
+  the caption disclosure comes from channel config. On by default.
+- **Stats snapshots for honest A/B**: `scripts/stats-snapshot.mjs` logs
+  per-video stats (YouTube + optional IG Reels insights) on a timer, so you can
+  compare videos *at the same age* — views at +24 h, not lifetime totals. This
+  is how you actually test publish slots, formats, and titles. We used it to
+  A/B a publish-time change and reverted within two days on clean evidence.
+- **Anchor-style sign-off & tagline**: give a channel a fixed closing line
+  (`signoff`) and a watermark/outro `tagline` in its config — the script
+  prompt enforces the sign-off on every video and the renderer stamps the
+  tagline on the corner and outro. Cheap, compounding brand recognition.
 - **Fact-lock**: the script generator can only state facts extracted (with sources)
   from the day's articles. Commentary can go hard; facts cannot drift. The pinned
   source comment is generated for you.
