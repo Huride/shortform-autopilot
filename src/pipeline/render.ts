@@ -65,6 +65,7 @@ export function toShortProps(
         ...(scene.emphasis ? { emphasis: scene.emphasis } : {}),
         ...(scene.visual ? { visual: scene.visual } : {}),
         ...(scene.visual2 ? { visual2: scene.visual2 } : {}),
+        ...(scene.stackVisuals ? { stackVisuals: true } : {}),
         ...(scene.bg ? { bg: scene.bg } : {}),
         ...(scene.outro ? { outro: true } : {}),
         ...(track.staticPath ? { audioSrc: track.staticPath } : {}),

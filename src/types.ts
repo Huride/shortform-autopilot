@@ -27,6 +27,8 @@ export interface Scene {
   visual?: SceneVisual;
   /** 장면 후반부 교체 카드 (말의 초점이 옮겨갈 때 — 예: 지수 차트 → 종목 로고). */
   visual2?: SceneVisual;
+  /** true 면 visual2 를 동시 배치 (상단 카드 유지 + 하단 강조 카드 순차 등장). */
+  stackVisuals?: boolean;
   /** 장면 배경 이미지 (remotion/public 상대 경로). 없으면 전역 배경 사용. */
   bg?: string;
   /** 사인오프 장면 — 렌더 시 브랜드 아웃트로 화면 위에서 나레이션이 흐른다. */

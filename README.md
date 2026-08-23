@@ -70,8 +70,16 @@ docs/           build guide, platform setup (click-level), localization notes
   conditional verdict, then sign-off. The prompt enforces it per scene.
 - **Screen follows the narration**: a scene can carry a second visual
   (`visual2`) that swaps in mid-scene when the focus shifts (index chart →
-  stock logos), per-scene background images (`bg`), and a 0.35 s breathing
-  tail after each narration so cuts never clip the last syllable.
+  stock logos) — or, with `stackVisuals`, stays stacked: the first card holds
+  the top of the frame while the emphasis card lands big below at the 35 %
+  mark of the scene. Plus per-scene background images (`bg`) and a 0.35 s
+  breathing tail after each narration so cuts never clip the last syllable.
+  Two opening formulas that work well with this: a "memory anchor" brief
+  ("remember this one number today" — value revealed by the narration, payoff
+  held to the verdict scene) and an "event declaration" deep-dive ("X just
+  announced Y — huge number — yet the stock didn't smile. 30 seconds, here's
+  why"), closing on the *next event* that settles the story rather than
+  tomorrow's price.
 - **Sign-off on the brand screen**: mark the catchphrase scene `outro` (done
   automatically when the last scene is the channel sign-off) and it plays over
   the logo outro screen instead of a caption — the video ends on your brand.

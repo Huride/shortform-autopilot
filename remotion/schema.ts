@@ -82,6 +82,8 @@ export type ShortScene = {
   visual?: SceneVisual;
   /** 있으면 장면 후반부에 visual 을 이 카드로 교체한다 (말의 초점 이동 추적). */
   visual2?: SceneVisual;
+  /** true 면 visual2 를 교체가 아니라 동시 배치로 — visual(차트 등)은 상단 유지, visual2 는 장면 35% 지점에 아래 크게. */
+  stackVisuals?: boolean;
   /** 장면 배경 이미지 (remotion/public 기준). 없으면 전역 배경/테마 배경. */
   bg?: string;
   /** true 면 이 장면부터 브랜드 아웃트로 화면 위에서 나레이션이 흐른다 (사인오프 장면용). */

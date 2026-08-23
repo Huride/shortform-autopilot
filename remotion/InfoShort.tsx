@@ -1305,13 +1305,43 @@ export const InfoShort: React.FC<ShortProps> = ({
             </AbsoluteFill>
           ) : null}
           {scene.audioSrc ? <Audio src={staticFile(scene.audioSrc)} /> : null}
-          {scene.outro ? null : scene.visual ? (
+          {scene.outro ? null : scene.visual && scene.visual2 && scene.stackVisuals ? (
+            // 동시 배치: 상단 카드(현상)는 유지, 강조 카드(핵심 숫자)는 장면 35% 지점에 아래 크게.
+            <>
+              <Sequence from={i === 0 ? HOOK_FRAMES : 0}>
+                <AbsoluteFill style={{ transform: 'translateY(-430px) scale(0.62)' }}>
+                  <VisualCard visual={scene.visual} theme={theme} />
+                </AbsoluteFill>
+              </Sequence>
+              <Sequence
+                from={Math.max(Math.floor(scene.durationInFrames * 0.35), (i === 0 ? HOOK_FRAMES : 0) + 18)}
+              >
+                <AbsoluteFill style={{ transform: 'translateY(150px)' }}>
+                  <VisualCard visual={scene.visual2} theme={theme} />
+                </AbsoluteFill>
+              </Sequence>
+            </>
+          ) : scene.visual ? (
             // 첫 장면의 비주얼은 후킹 카드에 가려지므로, 카드가 사라진 직후
             // 등장 애니메이션이 보이게 지연시킨다.
             i === 0 ? (
-              <Sequence from={HOOK_FRAMES}>
-                <VisualCard visual={scene.visual} theme={theme} />
-              </Sequence>
+              scene.visual2 ? (
+                <>
+                  <Sequence
+                    from={HOOK_FRAMES}
+                    durationInFrames={Math.max(Math.floor((scene.durationInFrames + HOOK_FRAMES) / 2) - HOOK_FRAMES, 15)}
+                  >
+                    <VisualCard visual={scene.visual} theme={theme} />
+                  </Sequence>
+                  <Sequence from={Math.max(Math.floor((scene.durationInFrames + HOOK_FRAMES) / 2), HOOK_FRAMES + 15)}>
+                    <VisualCard visual={scene.visual2} theme={theme} />
+                  </Sequence>
+                </>
+              ) : (
+                <Sequence from={HOOK_FRAMES}>
+                  <VisualCard visual={scene.visual} theme={theme} />
+                </Sequence>
+              )
             ) : scene.visual2 ? (
               // 두 카드를 절반씩 — 말이 지수에서 종목으로 넘어가면 화면도 따라간다.
               <>
