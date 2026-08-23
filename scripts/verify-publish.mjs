@@ -8,6 +8,7 @@
 import { readFileSync, readdirSync, existsSync, writeFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { google } from 'googleapis';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const JOBS = resolve(ROOT, 'data/jobs');
@@ -23,6 +24,27 @@ async function alert(text) {
   });
 }
 
+// 공개 전환 확인 직후 채널 고지를 고정 댓글로 단다 (영상 나레이션에서 뺀 대신).
+async function postDisclosureComment(job, videoId) {
+  try {
+    const ch = JSON.parse(readFileSync(resolve(ROOT, `channels/${job.channelId}.json`), 'utf8'));
+    if (!ch.disclosure) return;
+    const auth = new google.auth.OAuth2(process.env.YOUTUBE_CLIENT_ID, process.env.YOUTUBE_CLIENT_SECRET);
+    auth.setCredentials({ refresh_token: process.env.YOUTUBE_REFRESH_TOKEN });
+    const yt = google.youtube({ version: 'v3', auth });
+    await yt.commentThreads.insert({
+      part: ['snippet'],
+      requestBody: { snippet: {
+        videoId,
+        topLevelComment: { snippet: { textOriginal: ch.disclosure } },
+      } },
+    });
+    console.log('disclosure comment posted', videoId);
+  } catch (e) {
+    await alert(`⚠ 고지 댓글 게시 실패 (${videoId}): ${String(e).slice(0, 120)} — 수동으로 달아주세요`);
+  }
+}
+
 const now = Date.now();
 const jobs = existsSync(JOBS)
   ? readdirSync(JOBS).filter((f) => f.endsWith('.json'))
@@ -30,7 +52,7 @@ const jobs = existsSync(JOBS)
   : [];
 
 for (const job of jobs) {
-  const videoId = job.publish?.youtube?.videoId;
+  const videoId = (job.published ?? []).find((p) => p.platform === 'youtube')?.remoteId;
   if (!videoId || state[videoId]) continue;
   const due = job.scheduledAt ? new Date(job.scheduledAt).getTime() : null;
   if (due === null || due > now) continue;          // not scheduled / not due yet
@@ -41,6 +63,7 @@ for (const job of jobs) {
   )).ok;
   if (ok) {
     state[videoId] = 'public';
+    await postDisclosureComment(job, videoId);
     await alert(`✅ [${job.channelId}] "${job.topic ?? videoId}" is public as scheduled\nhttps://youtu.be/${videoId}`);
   } else if (now - due > 20 * 60_000) {
     state[videoId] = 'stuck';

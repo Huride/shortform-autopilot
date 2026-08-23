@@ -65,7 +65,12 @@ export type SceneVisual =
    */
   | { kind: 'keyword'; text: string; sub?: string }
   /** 항목 나열 — 참석자·일정·사례처럼 나열이 핵심인 장면. */
-  | { kind: 'list'; title: string; items: string[] };
+  | { kind: 'list'; title: string; items: string[] }
+  /** 시세 차트 — 자체 렌더 스파크라인. points 는 세션 종가 시계열. */
+  | { kind: 'chart'; label: string; value: string; points: number[]; up: boolean }
+  /** 종목 로고 카드 — 주도주 장면. src 는 remotion/public 기준 상대 경로. */
+  | { kind: 'logo'; src: string; name: string; value: string; up: boolean }
+  | { kind: 'logos'; items: { src: string; name: string; value: string; up?: boolean }[] };
 
 export type ShortScene = {
   caption: string;
@@ -75,6 +80,12 @@ export type ShortScene = {
   audioSrc?: string;
   /** 있으면 장면 중앙에 인포그래픽 카드를 띄운다. 시선 리듬용. */
   visual?: SceneVisual;
+  /** 있으면 장면 후반부에 visual 을 이 카드로 교체한다 (말의 초점 이동 추적). */
+  visual2?: SceneVisual;
+  /** 장면 배경 이미지 (remotion/public 기준). 없으면 전역 배경/테마 배경. */
+  bg?: string;
+  /** true 면 이 장면부터 브랜드 아웃트로 화면 위에서 나레이션이 흐른다 (사인오프 장면용). */
+  outro?: boolean;
   durationInFrames: number;
 };
 

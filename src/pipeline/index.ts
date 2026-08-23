@@ -30,8 +30,13 @@ export async function build(job: Job): Promise<Job> {
         brief: current.brief,
       });
       // AI 고지는 코드에서 붙인다 — 모델이 빠뜨려도 반드시 들어가야 한다.
-      const script = channel ? withDisclosure(raw, channel) : raw;
+      let script = channel ? withDisclosure(raw, channel) : raw;
       log.info(`  "${script.title}" · 장면 ${script.scenes.length}개`);
+      // 사인오프 캐치프레이즈 장면은 브랜드 아웃트로 화면 위에서 나온다.
+      const last = script.scenes[script.scenes.length - 1];
+      if (channel?.signoff && last && last.narration.includes(channel.signoff.slice(0, 8))) {
+        script = { ...script, scenes: [...script.scenes.slice(0, -1), { ...last, outro: true }] };
+      }
       current = save({ ...current, script, status: 'scripted' });
     }
 
@@ -42,12 +47,18 @@ export async function build(job: Job): Promise<Job> {
         voice: channel?.voice,
         style: channel?.voiceStyle,
         speed: channel?.voiceSpeed,
+        modelId: channel?.ttsSettings?.modelId,
+        stability: channel?.ttsSettings?.stability,
+        similarityBoost: channel?.ttsSettings?.similarityBoost,
+        elStyle: channel?.ttsSettings?.style,
+        postTempo: channel?.ttsSettings?.postTempo,
       });
       current = save({ ...current, audio, status: 'voiced' });
     }
 
     // 배경 이미지는 있으면 좋은 것이지 필수가 아니다 — 실패해도 테마 배경으로 렌더한다.
-    if (channel && env.backgroundImages() && !current.backgroundImage && current.brief) {
+    const scenesHaveBg = (current.script?.scenes ?? []).every((s) => s.bg);
+    if (channel && env.backgroundImages() && !current.backgroundImage && current.brief && !scenesHaveBg) {
       log.step(`[${current.id}] 배경 이미지 생성`);
       try {
         const backgroundImage = await generateBackground(current.id, current.brief, channel);

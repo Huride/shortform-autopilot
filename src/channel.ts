@@ -26,6 +26,22 @@ export interface Channel {
    * strongly recommended once the channel has a positioning.
    */
   signoff?: string;
+  /** Spoken-style rules fed to the script prompt (tone, rhythm, tag usage). */
+  speechStyle?: string[];
+  /** Hook techniques the script prompt may use, with their truth conditions. */
+  hooking?: string[];
+  /**
+   * 이 채널의 서사 구조 — 기본 팩트체크형 구조(콜드오픈→사실→검증→현황)를
+   * 통째로 대체한다. 장면 순서대로 한 줄씩.
+   */
+  scriptFrame?: string[];
+  /** Per-slot formats — publishAt local time + format description. */
+  slots?: Record<string, { publishAt: string; format: string }>;
+  /** TTS overrides: provider/model/voice settings/post-processing tempo. */
+  ttsSettings?: {
+    provider?: string; modelId?: string; stability?: number;
+    similarityBoost?: number; style?: number; speed?: number; postTempo?: number; note?: string;
+  };
   /**
    * Short brand tagline shown as an on-screen watermark and on the outro card.
    * Usually the sign-off minus the channel name.

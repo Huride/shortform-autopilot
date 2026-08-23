@@ -64,8 +64,12 @@ export function toShortProps(
         caption: scene.caption,
         ...(scene.emphasis ? { emphasis: scene.emphasis } : {}),
         ...(scene.visual ? { visual: scene.visual } : {}),
+        ...(scene.visual2 ? { visual2: scene.visual2 } : {}),
+        ...(scene.bg ? { bg: scene.bg } : {}),
+        ...(scene.outro ? { outro: true } : {}),
         ...(track.staticPath ? { audioSrc: track.staticPath } : {}),
-        durationInFrames: Math.max(Math.round(track.durationSec * VIDEO.fps), 1),
+        // 나레이션 끝에 0.35초 여백 — 전환이 마지막 음절을 물지 않게.
+        durationInFrames: Math.max(Math.round((track.durationSec + 0.35) * VIDEO.fps), 1),
       };
     }),
   };

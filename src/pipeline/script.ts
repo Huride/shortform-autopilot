@@ -207,6 +207,14 @@ ${channel.stance}
 ## This channel's frames
 ${channel.framing.map((f) => `- ${f}`).join('\n')}
 ${channel.audienceNote ? `\n## Audience\n${channel.audienceNote}\n` : ''}
+${channel.speechStyle?.length ? `\n## Spoken style — write narration in this voice\n${channel.speechStyle.map((r) => `- ${r}`).join('\n')}\n` : ''}
+${channel.hooking?.length ? `\n## Hook techniques (each has a truth condition — violating it is a guardrail breach)\n${channel.hooking.map((r) => `- ${r}`).join('\n')}\n` : ''}
+${channel.ttsSettings?.modelId?.startsWith('eleven_v3') ? `\n## Audio tags (narration only — NEVER in captions or titles)
+The TTS engine understands inline delivery tags. Use them sparingly (6–8 per video):
+- [excited] before the hook's first sentence
+- [emphasized] immediately before a key number or deadline
+- [pause] at topic transitions
+Tags go inside the narration text only. Captions must stay clean.\n` : ''}
 ## One video = one question
 Never cover an issue's full history, every reaction, and the outlook in one
 short. Pick **the single question viewers are most confused about right now**
@@ -214,7 +222,9 @@ and resolve only that. The hook IS that question.
 (Example: not "everything about the new pricing" but "does the new plan
 actually cost existing users more?")
 
-## Structure — cold open → what happened → key facts → where it stands → the take
+${channel.scriptFrame?.length ? `## Structure — this channel's narrative arc (follow scene-by-scene, in order)
+${channel.scriptFrame.map((r, n) => `${n + 1}. ${r}`).join('\n')}
+The final scene MUST end with the channel sign-off, word for word: "${channel.signoff ?? ''}"` : `## Structure — cold open → what happened → key facts → where it stands → the take
 1. **Cold open (one scene)**: open on the question or the controversy itself.
    No greetings, no channel intro, no "today we'll look at". First second earns
    the next thirty.
@@ -226,7 +236,7 @@ actually cost existing users more?")
    - "This claim, however, has not been verified."
    Marking the boundary between confirmed and unconfirmed is what makes the
    channel trustworthy. Never blur it.
-4. **Where it stands (one scene)**: the current state of play.${signoff}
+4. **Where it stands (one scene)**: the current state of play.${signoff}`}
 
 ## Titles — pick per issue type
 - **Issue-form** (when the matter is still contested): "X announced — the real

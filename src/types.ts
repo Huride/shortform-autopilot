@@ -25,6 +25,12 @@ export interface Scene {
   emphasis?: string;
   /** 장면 중앙에 띄울 인포그래픽 카드. 값은 사실 목록에서만 나온다. */
   visual?: SceneVisual;
+  /** 장면 후반부 교체 카드 (말의 초점이 옮겨갈 때 — 예: 지수 차트 → 종목 로고). */
+  visual2?: SceneVisual;
+  /** 장면 배경 이미지 (remotion/public 상대 경로). 없으면 전역 배경 사용. */
+  bg?: string;
+  /** 사인오프 장면 — 렌더 시 브랜드 아웃트로 화면 위에서 나레이션이 흐른다. */
+  outro?: boolean;
 }
 
 export interface Script {

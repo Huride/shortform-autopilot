@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process';
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { relative, resolve } from 'node:path';
 import { PATHS, env } from '../config.js';
 import { log } from '../log.js';
@@ -43,6 +43,13 @@ export interface VoiceOptions {
    * 숏폼 기본 감각은 1.15~1.25. 1.4 를 넘으면 부자연스러워진다.
    */
   speed?: number;
+  /** ElevenLabs 전용 오버라이드 (채널 ttsSettings 에서 전달) */
+  modelId?: string;
+  stability?: number;
+  similarityBoost?: number;
+  elStyle?: number;
+  /** 렌더 후 피치 보존 배속 (ffmpeg atempo). API speed 상한(1.2) 초과분은 이걸로. */
+  postTempo?: number;
 }
 
 export interface TtsProvider {
@@ -139,8 +146,16 @@ const elevenLabsProvider: TtsProvider = {
       },
       body: JSON.stringify({
         text,
-        model_id: env.tts.modelId(),
-        voice_settings: { stability: 0.45, similarity_boost: 0.75 },
+        model_id: options?.modelId ?? env.tts.modelId(),
+        // v3 는 stability 만 확실히 받는다 (Creative=0 / Natural=0.5 / Robust=1).
+        voice_settings: (options?.modelId ?? env.tts.modelId()).startsWith('eleven_v3')
+          ? { stability: options?.stability ?? 0.0 }
+          : {
+              stability: options?.stability ?? 0.45,
+              similarity_boost: options?.similarityBoost ?? 0.75,
+              ...(options?.elStyle !== undefined ? { style: options.elStyle } : {}),
+              ...(options?.speed !== undefined ? { speed: Math.min(options.speed, 1.2) } : {}),
+            },
       }),
     });
 
@@ -151,6 +166,24 @@ const elevenLabsProvider: TtsProvider = {
     const bytes = Buffer.from(await res.arrayBuffer());
     mkdirSync(resolve(outAbsPath, '..'), { recursive: true });
     writeFileSync(outAbsPath, bytes);
+
+    // 배속 후처리 — remotion 내장 ffmpeg 로 atempo (피치 보존). 실패 시 원본 유지.
+    if (options?.postTempo && options.postTempo !== 1) {
+      const wavPath = outAbsPath.replace(/\.mp3$/, '.wav');
+      try {
+        execFileSync('npx', [
+          'remotion', 'ffmpeg', '-i', outAbsPath,
+          '-filter:a', `atempo=${options.postTempo}`, wavPath, '-y',
+        ], { stdio: ['ignore', 'pipe', 'pipe'], cwd: resolve(PATHS.remotionPublic, '../..') });
+        const wavBytes = readFileSync(wavPath);
+        return {
+          staticPath: relative(PATHS.remotionPublic, wavPath),
+          durationSec: wavDuration(wavBytes),
+        };
+      } catch (e) {
+        log.warn(`atempo 후처리 실패 — 원속으로 진행: ${String(e).slice(0, 100)}`);
+      }
+    }
 
     return {
       staticPath: relative(PATHS.remotionPublic, outAbsPath),

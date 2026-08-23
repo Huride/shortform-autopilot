@@ -59,10 +59,28 @@ docs/           build guide, platform setup (click-level), localization notes
 - **Fact-lock**: the script generator can only state facts extracted (with sources)
   from the day's articles. Commentary can go hard; facts cannot drift. The pinned
   source comment is generated for you.
-- **Retention-engineered visuals**: per-scene punch-zoom cuts, five kinds of
+- **Retention-engineered visuals**: per-scene punch-zoom cuts, eight kinds of
   code-drawn infographic cards (count-up stats, quote panels, VS contrasts, lists,
-  punch-word stamps) on every scene, continuous micro-motion, a title-card hook,
-  and a logo outro. All drawn in code: zero image cost, zero copyright risk.
+  punch-word stamps, live-drawn price charts, single/grid logo cards) on every
+  scene, continuous micro-motion, a title-card hook, and a logo outro. All drawn
+  in code: zero image cost, zero copyright risk.
+- **Narrative-arc override (`scriptFrame`)**: replace the default fact-check
+  structure with your channel's own scene-by-scene arc in config — e.g. a
+  "memory anchor" hook ("remember this one number today"), proof section,
+  conditional verdict, then sign-off. The prompt enforces it per scene.
+- **Screen follows the narration**: a scene can carry a second visual
+  (`visual2`) that swaps in mid-scene when the focus shifts (index chart →
+  stock logos), per-scene background images (`bg`), and a 0.35 s breathing
+  tail after each narration so cuts never clip the last syllable.
+- **Sign-off on the brand screen**: mark the catchphrase scene `outro` (done
+  automatically when the last scene is the channel sign-off) and it plays over
+  the logo outro screen instead of a caption — the video ends on your brand.
+- **Auto disclosure comment**: the publish verifier posts the channel's
+  disclosure as a comment the moment a scheduled video flips public — keeping
+  the narration clean while staying compliant.
+- **ElevenLabs v3 support**: per-channel `ttsSettings` (model, stability,
+  audio tags like [excited]/[pause] injected by the prompt, and an ffmpeg
+  atempo post-step for speeds beyond the API cap).
 - **Self-synthesized BGM**: drums, bass groove, chords, arpeggio — generated as a
   seamless WAV loop by `scripts/make-bgm.mjs`. You own 100% of the rights.
 - **Job state machine**: every stage persists to a job file; any crash resumes

@@ -204,11 +204,30 @@ const Caption: React.FC<{ scene: ShortScene; theme: Theme }> = ({ scene, theme }
  * "사관학교 통합, 이대로 괜찮은가" → ["사관학교 통합,", "이대로 괜찮은가"]
  * 브라우저의 자동 감김은 어절 중간을 자를 수 있어서 명시적으로 가른다.
  */
+/** 한글 1.0 / 그 외 0.55 로 치는 시각적 길이. */
+function visualLen(t: string): number {
+  let n = 0;
+  for (const ch of t) n += /[\u3131-\uD79D]/.test(ch) ? 1 : 0.55;
+  return n;
+}
+
 function splitHookLines(text: string): string[] {
-  const at = text.indexOf(',');
-  // 쉼표가 없거나 너무 끝에 있으면 한 줄 그대로 (keep-all 이 어절 단위로 감아준다)
-  if (at < 2 || at > text.length - 4) return [text];
-  return [text.slice(0, at + 1), text.slice(at + 1).trim()];
+  // 숫자 사이 쉼표("1,380")는 문장 쉼표가 아니다 — 어절 단위로만 줄을 가른다.
+  // 각 줄은 시각 길이 ≤8 로 패킹해 화면 안에서 절대 감기지 않게 한다.
+  const words = text.split(/\s+/).filter(Boolean);
+  const lines: string[] = [];
+  let cur = '';
+  for (const w of words) {
+    const merged = cur ? `${cur} ${w}` : w;
+    if (cur && visualLen(merged) > 8) {
+      lines.push(cur);
+      cur = w;
+    } else {
+      cur = merged;
+    }
+  }
+  if (cur) lines.push(cur);
+  return lines.slice(0, 3).length === lines.length ? lines : [...lines.slice(0, 2), lines.slice(2).join(' ')];
 }
 
 /**
@@ -221,9 +240,10 @@ function splitHookLines(text: string): string[] {
  * banner 테마 = 좌측 정렬 블록 타이포 / fullscreen 테마 = 중앙 스케일-인.
  * (두 채널이 같은 도구로 만들어 보이면 안 되므로 형태를 다르게 유지한다.)
  */
-const Hook: React.FC<{ text: string; brand?: string; theme: Theme }> = ({
+const Hook: React.FC<{ text: string; brand?: string; logo?: string; theme: Theme }> = ({
   text,
   brand,
+  logo,
   theme,
 }) => {
   const frame = useCurrentFrame();
@@ -278,7 +298,11 @@ const Hook: React.FC<{ text: string; brand?: string; theme: Theme }> = ({
           }),
       }}
     >
-      <span style={{ color: theme.accent }}>●</span> {brand}
+      {logo ? (
+        <Img src={staticFile(logo)} style={{ width: 46, height: 46, verticalAlign: '-8px', marginRight: 14, display: 'inline-block' }} />
+      ) : (
+        <span style={{ color: theme.accent }}>● </span>
+      )}{brand}
     </div>
   ) : null;
 
@@ -327,11 +351,11 @@ const Hook: React.FC<{ text: string; brand?: string; theme: Theme }> = ({
                 <div
                   style={{
                     fontFamily: theme.fontStack,
-                    fontSize: 106,
+                    fontSize: Math.min(106, Math.floor(880 / Math.max(...lines.map(visualLen)))),
                     fontWeight: 900,
                     lineHeight: 1.18,
                     letterSpacing: '-0.03em',
-                    wordBreak: 'keep-all',
+                    whiteSpace: 'nowrap',
                     ...(punchLine
                       ? {
                           backgroundColor: theme.accent,
@@ -492,6 +516,178 @@ const VisualCard: React.FC<{ visual: SceneVisual; theme: Theme }> = ({ visual, t
     transform: `scale(${interpolate(enter, [0, 1], [0.72, 1]) * breathe})`,
     opacity: enter,
   };
+
+  if (visual.kind === 'chart') {
+    const pts = visual.points.length >= 2 ? visual.points : [0, 0];
+    const min = Math.min(...pts);
+    const max = Math.max(...pts);
+    const span = max - min || 1;
+    const W = 640;
+    const H = 240;
+    const n = pts.length;
+    // 스윕 진행에 맞춰 선이 그려진다
+    const upto = Math.max(2, Math.ceil((sweep / 100) * n));
+    const path = pts.slice(0, upto)
+      .map((v, i) => `${(i / (n - 1)) * W},${H - ((v - min) / span) * H}`)
+      .join(' ');
+    const lineColor = visual.up ? '#FF5A4E' : '#4E8CFF'; // 한국 시장 관례: 상승 빨강 / 하락 파랑
+    return (
+      <AbsoluteFill style={{ justifyContent: 'center', alignItems: 'center' }}>
+        {vignette}
+        <div
+          style={{
+            transform: `scale(${interpolate(enter, [0, 1], [0.86, 1]) * breathe})`,
+            opacity: enter,
+            background: `${theme.bg}E6`,
+            border: `1px solid ${theme.accent}55`,
+            borderRadius: 28,
+            padding: '44px 52px 38px',
+            width: 780,
+          }}
+        >
+          {kicker(visual.label)}
+          <div
+            style={{
+              fontFamily: theme.fontStack,
+              fontSize: 92,
+              fontWeight: 900,
+              color: lineColor,
+              letterSpacing: '-0.02em',
+              marginBottom: 22,
+              fontVariantNumeric: 'tabular-nums',
+            }}
+          >
+            {visual.value}
+          </div>
+          <svg width={W} height={H} style={{ display: 'block', overflow: 'visible' }}>
+            <polyline
+              points={path}
+              fill="none"
+              stroke={lineColor}
+              strokeWidth={7}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+            {upto >= n ? (
+              <circle
+                cx={W}
+                cy={H - ((pts[n - 1]! - min) / span) * H}
+                r={11}
+                fill={lineColor}
+              />
+            ) : null}
+          </svg>
+        </div>
+      </AbsoluteFill>
+    );
+  }
+
+  if (visual.kind === 'logo') {
+    const pctColor = visual.up ? '#FF5A4E' : '#4E8CFF';
+    return (
+      <AbsoluteFill style={{ justifyContent: 'center', alignItems: 'center' }}>
+        {vignette}
+        <div
+          style={{
+            transform: `scale(${interpolate(enter, [0, 1], [0.86, 1]) * breathe})`,
+            opacity: enter,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 40,
+            background: `${theme.bg}E6`,
+            border: `1px solid ${theme.accent}55`,
+            borderRadius: 28,
+            padding: '40px 56px',
+          }}
+        >
+          <div
+            style={{
+              width: 170,
+              height: 170,
+              borderRadius: 32,
+              background: '#FFFFFF',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              overflow: 'hidden',
+              flex: 'none',
+            }}
+          >
+            <Img src={staticFile(visual.src)} style={{ width: '78%', height: '78%', objectFit: 'contain' }} />
+          </div>
+          <div>
+            <div style={{ fontFamily: theme.fontStack, fontSize: 54, fontWeight: 800, color: theme.fg }}>
+              {visual.name}
+            </div>
+            <div
+              style={{
+                fontFamily: theme.fontStack,
+                fontSize: 96,
+                fontWeight: 900,
+                color: pctColor,
+                fontVariantNumeric: 'tabular-nums',
+                letterSpacing: '-0.02em',
+              }}
+            >
+              {visual.value}
+            </div>
+          </div>
+        </div>
+      </AbsoluteFill>
+    );
+  }
+
+  if (visual.kind === 'logos') {
+    // 한 장면이 여러 종목을 언급할 때 — 언급된 전 종목을 같은 크기로 보여줘
+    // 특정 종목만 띄우는 데서 오는 "추천" 오해를 없앤다.
+    const cols = visual.items.length <= 2 ? 1 : 2;
+    return (
+      <AbsoluteFill style={{ justifyContent: 'center', alignItems: 'center' }}>
+        {vignette}
+        <div
+          style={{
+            transform: `scale(${interpolate(enter, [0, 1], [0.86, 1]) * breathe})`,
+            opacity: enter,
+            display: 'grid',
+            gridTemplateColumns: `repeat(${cols}, 1fr)`,
+            gap: 22,
+            background: `${theme.bg}E6`,
+            border: `1px solid ${theme.accent}55`,
+            borderRadius: 28,
+            padding: '36px 44px',
+          }}
+        >
+          {visual.items.map((it, n) => (
+            <div key={n} style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
+              <div
+                style={{
+                  width: 96, height: 96, borderRadius: 22, background: '#FFFFFF',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  overflow: 'hidden', flex: 'none',
+                }}
+              >
+                <Img src={staticFile(it.src)} style={{ width: '76%', height: '76%', objectFit: 'contain' }} />
+              </div>
+              <div>
+                <div style={{ fontFamily: theme.fontStack, fontSize: 38, fontWeight: 800, color: theme.fg }}>
+                  {it.name}
+                </div>
+                <div
+                  style={{
+                    fontFamily: theme.fontStack, fontSize: 56, fontWeight: 900,
+                    color: it.up === undefined ? `${theme.fg}99` : it.up ? '#FF5A4E' : '#4E8CFF',
+                    fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.02em',
+                  }}
+                >
+                  {it.value}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </AbsoluteFill>
+    );
+  }
 
   if (visual.kind === 'stat') {
     return (
@@ -767,11 +963,11 @@ const VisualCard: React.FC<{ visual: SceneVisual; theme: Theme }> = ({ visual, t
       </div>
       <div
         style={{
-          fontSize: 68,
+          fontSize: value.length > 7 ? 52 : 68,
           fontWeight: 900,
           color: highlight ? theme.bg : theme.fg,
           lineHeight: 1.18,
-          wordBreak: 'keep-all',
+          whiteSpace: 'nowrap',
         }}
       >
         {value}
@@ -838,10 +1034,10 @@ const TitleChip: React.FC<{ text: string; theme: Theme }> = ({ text, theme }) =>
           lineHeight: 1.35,
           color: theme.fg,
           letterSpacing: '-0.01em',
-          padding: '16px 38px',
+          padding: '18px 42px',
           borderRadius: 18,
-          borderLeft: `10px solid ${theme.accent}`,
-          backgroundColor: `${theme.bg}B3`,
+          border: `1px solid ${theme.fg}22`,
+          backgroundColor: `${theme.bg}D9`,
           maxWidth: 900,
           textAlign: 'center',
           textWrap: 'balance',
@@ -931,7 +1127,11 @@ const Outro: React.FC<{ brand: string; logo?: string; tagline?: string; theme: T
         >
           {logo ? brand : (
             <>
-              <span style={{ color: theme.accent }}>●</span> {brand}
+              {logo ? (
+        <Img src={staticFile(logo)} style={{ width: 46, height: 46, verticalAlign: '-8px', marginRight: 14, display: 'inline-block' }} />
+      ) : (
+        <span style={{ color: theme.accent }}>● </span>
+      )}{brand}
             </>
           )}
         </div>
@@ -1071,6 +1271,9 @@ export const InfoShort: React.FC<ShortProps> = ({
   }
   // 장면 총합. 브랜드가 있으면 이 뒤에 아웃트로가 붙는다 (Root 의 duration 계산과 일치).
   const scenesEnd = cursor;
+  // 사인오프 장면(outro=true)부터는 자막·카드 대신 브랜드 화면 위에서 나레이션이 흐른다.
+  const outroIdx = scenes.findIndex((s) => s.outro);
+  const outroStart = outroIdx >= 0 ? bounds[outroIdx]! - scenes[outroIdx]!.durationInFrames : scenesEnd;
 
   return (
     <AbsoluteFill>
@@ -1088,26 +1291,49 @@ export const InfoShort: React.FC<ShortProps> = ({
           from={bounds[i]! - scene.durationInFrames}
           durationInFrames={scene.durationInFrames}
         >
+          {scene.bg ? (
+            <AbsoluteFill>
+              <Img
+                src={staticFile(scene.bg)}
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+              />
+              <AbsoluteFill
+                style={{
+                  background: `linear-gradient(180deg, ${theme.bg}99 0%, ${theme.bg}55 40%, ${theme.bg}CC 100%)`,
+                }}
+              />
+            </AbsoluteFill>
+          ) : null}
           {scene.audioSrc ? <Audio src={staticFile(scene.audioSrc)} /> : null}
-          {scene.visual ? (
+          {scene.outro ? null : scene.visual ? (
             // 첫 장면의 비주얼은 후킹 카드에 가려지므로, 카드가 사라진 직후
             // 등장 애니메이션이 보이게 지연시킨다.
             i === 0 ? (
               <Sequence from={HOOK_FRAMES}>
                 <VisualCard visual={scene.visual} theme={theme} />
               </Sequence>
+            ) : scene.visual2 ? (
+              // 두 카드를 절반씩 — 말이 지수에서 종목으로 넘어가면 화면도 따라간다.
+              <>
+                <Sequence durationInFrames={Math.floor(scene.durationInFrames / 2)}>
+                  <VisualCard visual={scene.visual} theme={theme} />
+                </Sequence>
+                <Sequence from={Math.floor(scene.durationInFrames / 2)}>
+                  <VisualCard visual={scene.visual2} theme={theme} />
+                </Sequence>
+              </>
             ) : (
               <VisualCard visual={scene.visual} theme={theme} />
             )
           ) : null}
-          <Caption scene={scene} theme={theme} />
+          {scene.outro ? null : <Caption scene={scene} theme={theme} />}
         </Sequence>
       ))}
 
       {theme.titleChip ? (
         // 관통 질문을 전 장면에 상시 노출한다 — 중간에 들어온 시청자도 주제를 안다.
         // 후킹 카드가 떠 있는 동안은 중복이라 그 뒤부터, 아웃트로 전까지 보여준다.
-        <Sequence from={HOOK_FRAMES} durationInFrames={Math.max(scenesEnd - HOOK_FRAMES, 1)}>
+        <Sequence from={HOOK_FRAMES} durationInFrames={Math.max(outroStart - HOOK_FRAMES, 1)}>
           <TitleChip text={hook} theme={theme} />
         </Sequence>
       ) : null}
@@ -1115,14 +1341,14 @@ export const InfoShort: React.FC<ShortProps> = ({
       <Progress theme={theme} sceneCount={scenes.length} bounds={bounds} />
 
       <Sequence durationInFrames={HOOK_FRAMES}>
-        <Hook text={hook} brand={brand} theme={theme} />
+        <Hook text={hook} brand={brand} logo={brandLogo} theme={theme} />
       </Sequence>
 
       {brandTagline ? (
-        <Sequence from={0} durationInFrames={scenesEnd}>{taglineMark}</Sequence>
+        <Sequence from={0} durationInFrames={outroStart}>{taglineMark}</Sequence>
       ) : null}
       {brand ? (
-        <Sequence from={scenesEnd} durationInFrames={OUTRO_FRAMES}>
+        <Sequence from={outroStart} durationInFrames={scenesEnd - outroStart + OUTRO_FRAMES}>
           <Outro brand={brand} logo={brandLogo} tagline={brandTagline} theme={theme} />
         </Sequence>
       ) : null}

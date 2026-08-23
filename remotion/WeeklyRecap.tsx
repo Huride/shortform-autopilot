@@ -202,6 +202,9 @@ const HVisual: React.FC<{ visual: SceneVisual; theme: Theme }> = ({ visual, them
     paddingBottom: 170,
   };
 
+  // chart/logo 는 숏폼 전용 — 주간 결산에서는 스킵 (스크립트 생성이 안 만들기도 함)
+  if (visual.kind === 'chart' || visual.kind === 'logo' || visual.kind === 'logos') return null;
+
   if (visual.kind === 'stat') {
     return (
       <AbsoluteFill style={shell}>
