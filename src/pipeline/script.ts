@@ -66,7 +66,7 @@ const ScriptSchema = z.object({
     .describe(
       'The through-line question shown full screen at the start and kept on top of every scene. A natural, complete sentence of 5–10 words, with a comma where it should break into two lines. e.g. "Merging the academies, is this really okay?"',
     ),
-  scenes: z.array(SceneSchema).describe('6–8 scenes. Total narration should land at 30–50 seconds.'),
+  scenes: z.array(SceneSchema).describe('7–11 scenes. Total narration should land at 30–50 seconds — scenes are SHORT (one or two sentences each).'),
   description: z
     .string()
     .describe(
@@ -142,9 +142,12 @@ const CRAFT = `Short-form script fundamentals:
   their own. If they say the same sentence, one of them is wasted.
 
 **Structure**
-- **6–8 scenes.** More than that starves each scene's budget and everything
-  turns into wire copy.
-- One scene = one piece of information. Never two.
+- **7–11 scenes, one BEAT per scene.** A beat ends whenever the narration moves
+  to a new number, a new entity, or a turn ("but", "however", the reveal) —
+  start a NEW scene there, with its own visual. The on-screen card must always
+  match what is being said at that moment; a card lingering from the previous
+  point while the narration has moved on is a failure.
+- One scene = one piece of information. Never two. When in doubt, split.
 - **No two scenes doing the same job.** Don't spend two scenes listing the same
   side's rationale — fold it into one and spend the slot on another angle.
 - Close with resonance or a question, not a summary. Never ask for likes/subscribes.

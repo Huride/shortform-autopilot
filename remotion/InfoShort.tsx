@@ -975,6 +975,10 @@ const VisualCard: React.FC<{ visual: SceneVisual; theme: Theme }> = ({ visual, t
     </div>
   );
 
+  // 값이 길면 좌우가 아니라 위아래로 — 좁은 칸에서 오른쪽이 잘리는 것 방지.
+  const contrastVertical =
+    Math.max(visual.leftValue.length, visual.rightValue.length) > 7 ||
+    Math.max(visual.leftLabel.length, visual.rightLabel.length) > 6;
   return (
     <AbsoluteFill style={{ alignItems: 'center', justifyContent: 'center', paddingBottom: 240 }}>
       {vignette}
@@ -982,11 +986,12 @@ const VisualCard: React.FC<{ visual: SceneVisual; theme: Theme }> = ({ visual, t
         style={{
           ...base,
           display: 'flex',
+          flexDirection: contrastVertical ? 'column' : 'row',
           gap: 24,
           width: '100%',
           maxWidth: 960,
           padding: '0 50px',
-          alignItems: 'center',
+          alignItems: contrastVertical ? 'stretch' : 'center',
         }}
       >
         {cell(visual.leftLabel, visual.leftValue, -slide, false)}
@@ -1001,6 +1006,8 @@ const VisualCard: React.FC<{ visual: SceneVisual; theme: Theme }> = ({ visual, t
             borderRadius: 999,
             width: 108,
             height: 108,
+            alignSelf: 'center',
+            flex: 'none',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
