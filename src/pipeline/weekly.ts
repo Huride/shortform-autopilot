@@ -3,6 +3,7 @@ import type { ShortScene, WeeklyChapter, WeeklyProps } from '../../remotion/sche
 import { loadChannel, type Channel } from '../channel.js';
 import { RefusalError, generateStructured } from '../llm.js';
 import { log } from '../log.js';
+import { PATHS } from '../config.js';
 import { list, localDate, save } from '../store.js';
 import { VIDEO, type AudioTrack, type Job, type Scene } from '../types.js';
 import { renderWeekly } from './render.js';
@@ -63,8 +64,14 @@ const FrameSchema = z.object({
   title: z
     .string()
     .describe(
-      'Hooking YouTube title, under 70 characters. Clearly a weekly briefing, no clickbait. e.g. "This week in politics: 5 things you need to know"',
+      'Hooking YouTube title, under 70 characters. Formula: **lead with the week\'s 1–2 biggest issues by name, then promise the through-line.** e.g. "Drill cuts, court clash — this week they were the same story | Weekly". A single-issue title misleads (viewers expect a deep-dive and bounce); a "5 things" list gives no reason to click. Concrete issue names catch the eye; the promise of synthesis matches what a recap actually delivers. The closing commentary must pay off the title\'s promise.',
     ),
+  thumbTop: z
+    .string()
+    .describe('Thumbnail top line — the 1–2 lead issues. e.g. "Drill cuts · Court clash". Max 5 words.'),
+  thumbBottom: z
+    .string()
+    .describe('Thumbnail bottom line (accent color) — the through-line, tense. e.g. "One story all along". Max 4 words.'),
   weekLabel: z.string().describe('The week label, max 4 words. e.g. "Week 32 Briefing".'),
   opening: z
     .array(SceneSchema)
@@ -82,7 +89,7 @@ const FrameSchema = z.object({
   description: z
     .string()
     .describe(
-      'YouTube description. One key sentence, blank line, one "▷ " summary line per issue, blank line, one closing sentence. No hashtags.',
+      'YouTube description. **Line 1: the through-line in one sentence. Line 2: "All N issues from this week, in order — use the chapters to jump around." (scope nudge — this sits above the fold; it tells title-clickers the video covers the whole week.)** Then a blank line, one "▷ " summary line per issue, blank line, one closing sentence. No hashtags.',
     ),
   hashtags: z.array(z.string()).describe("Tag bodies without '#'. 5–10."),
 });
@@ -333,18 +340,55 @@ export async function buildWeekly(channelId: string): Promise<Job> {
       script: description,
       audio: tracks,
       weeklyProps: props, // saved before render so a crash resumes from here
+      thumb: {
+        top: frame.thumbTop,
+        bottom: frame.thumbBottom,
+        weekLabel: frame.weekLabel,
+        ...(issues[0]?.job.backgroundImage ? { bg: issues[0].job.backgroundImage } : {}),
+      },
       status: 'voiced',
       createdAt: now,
       updatedAt: now,
     });
     const videoPath = await renderWeekly(id, props);
     log.ok(`  ${videoPath}`);
-    job = save({ ...job, videoPath, status: 'rendered' });
+    const thumbnailPath = await renderWeeklyThumb(id, job, channel);
+    job = save({ ...job, videoPath, ...(thumbnailPath ? { thumbnailPath } : {}), status: 'rendered' });
     return job;
   } catch (error) {
     if (error instanceof RefusalError) {
       throw new Error(`The model refused the weekly recap (${error.message}).`);
     }
     throw error;
+  }
+}
+
+/** Weekly thumbnail still — failures are non-fatal (YouTube falls back to an auto frame). */
+async function renderWeeklyThumb(id: string, job: Job, channel: Channel): Promise<string | undefined> {
+  if (!job.thumb) return undefined;
+  try {
+    const { execFileSync } = await import('node:child_process');
+    const { writeFileSync, mkdirSync } = await import('node:fs');
+    const { resolve } = await import('node:path');
+    const out = resolve(PATHS.out, `${id}-thumb.png`);
+    mkdirSync(PATHS.out, { recursive: true });
+    const propsPath = resolve(PATHS.out, `${id}-thumb-props.json`);
+    writeFileSync(propsPath, JSON.stringify({
+      theme: channel.theme,
+      brand: channel.name,
+      top: job.thumb.top,
+      bottom: job.thumb.bottom,
+      weekLabel: job.thumb.weekLabel,
+      ...(channel.logo ? { logo: channel.logo } : {}),
+      ...(job.thumb.bg ? { bg: job.thumb.bg } : {}),
+    }));
+    execFileSync('npx', ['remotion', 'still', 'remotion/index.ts', 'WeeklyThumb', out, `--props=${propsPath}`, '--public-dir=remotion/public'], {
+      stdio: 'pipe', env: { ...process.env, NODE_OPTIONS: '' },
+    });
+    log.info(`  thumbnail ${out}`);
+    return out;
+  } catch (e) {
+    log.warn(`thumbnail render failed (ignored): ${e instanceof Error ? e.message : e}`);
+    return undefined;
   }
 }

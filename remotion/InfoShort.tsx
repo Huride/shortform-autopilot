@@ -14,7 +14,7 @@ import {
 import { OUTRO_FRAMES, type SceneVisual, type ShortProps, type ShortScene, type Theme } from './schema';
 
 // 후킹이 조각 문구가 아니라 질문형 주제 문장(10~18자)이라 읽을 시간을 더 준다.
-const HOOK_FRAMES = 60; // 2.0초 @ 30fps
+const HOOK_FRAMES = 26; // ~0.87초 — 전면 카드는 순간 치고 빠진다
 
 /**
  * 생성 배경 이미지. 느린 켄번스 + 어둡게 덮기.
@@ -240,6 +240,32 @@ function splitHookLines(text: string): string[] {
  * banner 테마 = 좌측 정렬 블록 타이포 / fullscreen 테마 = 중앙 스케일-인.
  * (두 채널이 같은 도구로 만들어 보이면 안 되므로 형태를 다르게 유지한다.)
  */
+/** 문장 경계마다 중앙 카드를 살짝 킥 — 말이 다음 문장으로 넘어갔음을 화면이 보여준다. */
+const SentenceKick: React.FC<{ kicks: number[]; theme: Theme; children: React.ReactNode }> = ({
+  kicks,
+  theme,
+  children,
+}) => {
+  const frame = useCurrentFrame();
+  let pulse = 0;
+  for (const k of kicks) {
+    if (frame >= k && frame < k + 14) {
+      const t = (frame - k) / 14;
+      pulse = Math.max(pulse, Math.sin(Math.PI * t));
+    }
+  }
+  return (
+    <AbsoluteFill
+      style={{
+        transform: `scale(${1 + pulse * 0.045})`,
+        filter: pulse > 0.01 ? `drop-shadow(0 0 ${28 * pulse}px ${theme.accent}AA)` : undefined,
+      }}
+    >
+      {children}
+    </AbsoluteFill>
+  );
+};
+
 const Hook: React.FC<{ text: string; brand?: string; logo?: string; theme: Theme }> = ({
   text,
   brand,
@@ -249,13 +275,13 @@ const Hook: React.FC<{ text: string; brand?: string; logo?: string; theme: Theme
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 
-  const exit = interpolate(frame, [HOOK_FRAMES - 10, HOOK_FRAMES - 2], [1, 0], {
+  const exit = interpolate(frame, [HOOK_FRAMES - 7, HOOK_FRAMES - 1], [1, 0], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
   // 줄별 퇴장 오프셋 — i번째 줄이 2프레임씩 먼저 왼쪽으로 빠진다.
   const lineExit = (i: number): number =>
-    interpolate(frame, [HOOK_FRAMES - 12 + i * 2, HOOK_FRAMES - 4 + i * 2], [0, 1], {
+    interpolate(frame, [HOOK_FRAMES - 8 + i * 2, HOOK_FRAMES - 2 + i * 2], [0, 1], {
       extrapolateLeft: 'clamp',
       extrapolateRight: 'clamp',
       easing: Easing.in(Easing.cubic),
@@ -265,7 +291,7 @@ const Hook: React.FC<{ text: string; brand?: string; logo?: string; theme: Theme
     extrapolateRight: 'clamp',
     easing: Easing.out(Easing.quad),
   });
-  const underline = interpolate(frame, [12, 30], [0, 1], {
+  const underline = interpolate(frame, [8, 20], [0, 1], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
     easing: Easing.out(Easing.cubic),
@@ -331,7 +357,7 @@ const Hook: React.FC<{ text: string; brand?: string; logo?: string; theme: Theme
         <div style={{ transform: `scale(${breathe})`, transformOrigin: 'left center' }}>
           {lines.map((line, i) => {
             const s = spring({
-              frame: frame - 3 - i * 7,
+              frame: frame - 2 - i * 4,
               fps,
               config: { damping: 13, mass: 0.6 },
             });
@@ -1280,7 +1306,13 @@ export const InfoShort: React.FC<ShortProps> = ({
   const scenesEnd = cursor;
   // 사인오프 장면(outro=true)부터는 자막·카드 대신 브랜드 화면 위에서 나레이션이 흐른다.
   const outroIdx = scenes.findIndex((s) => s.outro);
-  const outroStart = outroIdx >= 0 ? bounds[outroIdx]! - scenes[outroIdx]!.durationInFrames : scenesEnd;
+  const outroFromIdx = scenes.findIndex((s) => s.outroFrom !== undefined);
+  const outroStart =
+    outroIdx >= 0
+      ? bounds[outroIdx]! - scenes[outroIdx]!.durationInFrames
+      : outroFromIdx >= 0
+        ? bounds[outroFromIdx]! - scenes[outroFromIdx]!.durationInFrames + scenes[outroFromIdx]!.outroFrom!
+        : scenesEnd;
 
   return (
     <AbsoluteFill>
@@ -1311,7 +1343,15 @@ export const InfoShort: React.FC<ShortProps> = ({
               />
             </AbsoluteFill>
           ) : null}
-          {scene.audioSrc ? <Audio src={staticFile(scene.audioSrc)} /> : null}
+          {scene.audioSegments?.length ? (
+            scene.audioSegments.map((seg, n) => (
+              <Sequence key={`a${n}`} from={seg.from}>
+                <Audio src={staticFile(seg.src)} />
+              </Sequence>
+            ))
+          ) : scene.audioSrc ? (
+            <Audio src={staticFile(scene.audioSrc)} />
+          ) : null}
           {scene.outro ? null : scene.visual && scene.visual2 && scene.stackVisuals ? (
             // 동시 배치: 상단 카드(현상)는 유지, 강조 카드(핵심 숫자)는 장면 35% 지점에 아래 크게.
             <>
@@ -1359,6 +1399,10 @@ export const InfoShort: React.FC<ShortProps> = ({
                   <VisualCard visual={scene.visual2} theme={theme} />
                 </Sequence>
               </>
+            ) : scene.sentenceKicks?.length ? (
+              <SentenceKick kicks={scene.sentenceKicks} theme={theme}>
+                <VisualCard visual={scene.visual} theme={theme} />
+              </SentenceKick>
             ) : (
               <VisualCard visual={scene.visual} theme={theme} />
             )

@@ -73,6 +73,7 @@ export async function build(job: Job): Promise<Job> {
       if (!current.script || !current.audio) throw new Error('대본 또는 음성이 없습니다.');
       log.step(`[${current.id}] 렌더`);
       const props = toShortProps(current.script, current.audio, channel?.theme, {
+        signoff: channel?.signoff,
         backgroundImage: current.backgroundImage,
         bgmSrc: channel?.bgm,
         bgmVolume: channel?.bgmVolume,
@@ -139,7 +140,7 @@ export async function publish(job: Job, platforms: Platform[]): Promise<Job> {
       log.step(`[${current.id}] 발행 → ${platform}`);
       const record =
         platform === 'youtube'
-          ? await publishToYouTube(script, videoPath, { publishAt: current.scheduledAt })
+          ? await publishToYouTube(script, videoPath, { publishAt: current.scheduledAt , ...(current.thumbnailPath ? { thumbnailPath: current.thumbnailPath } : {}) })
           : await publishToInstagram(script, current.publicUrl!);
       log.ok(`  ${record.url ?? record.remoteId}`);
       records.push(record);

@@ -29,6 +29,8 @@ function getBundle(): Promise<string> {
 }
 
 export interface RenderExtras {
+  /** 채널 사인오프 — 마지막 장면에서 이 문장이 시작될 때 아웃트로로 전환 */
+  signoff?: string;
   backgroundImage?: string;
   bgmSrc?: string;
   bgmVolume?: number;
@@ -59,6 +61,15 @@ export function toShortProps(
     ...(extras.brandLogo ? { brandLogo: extras.brandLogo } : {}),
     scenes: script.scenes.map((scene, i) => {
       const track = byIndex.get(i);
+      let outroFrom: number | undefined;
+      if (extras.signoff && track && i === script.scenes.length - 1 && track.segments?.length) {
+        const key = extras.signoff.slice(0, 6);
+        let cum = 0;
+        for (const seg of track.segments) {
+          if (seg.text?.includes(key)) { outroFrom = Math.round(cum * VIDEO.fps); break; }
+          cum += seg.durationSec;
+        }
+      }
       if (!track) throw new Error(`장면 ${i} 의 오디오 정보가 없습니다.`);
       return {
         caption: scene.caption,
@@ -69,6 +80,18 @@ export function toShortProps(
         ...(scene.bg ? { bg: scene.bg } : {}),
         ...(scene.outro ? { outro: true } : {}),
         ...(track.staticPath ? { audioSrc: track.staticPath } : {}),
+        ...(track.segments?.length
+          ? (() => {
+              let cum = 0;
+              const segs = track.segments.map((seg) => {
+                const from = Math.round(cum * VIDEO.fps);
+                cum += seg.durationSec;
+                return { src: seg.staticPath, from };
+              });
+              return { audioSegments: segs, sentenceKicks: segs.slice(1).map((x) => x.from) };
+            })()
+          : {}),
+        ...(outroFrom !== undefined ? { outroFrom } : {}),
         // 나레이션 끝에 0.35초 여백 — 전환이 마지막 음절을 물지 않게.
         durationInFrames: Math.max(Math.round((track.durationSec + 0.35) * VIDEO.fps), 1),
       };

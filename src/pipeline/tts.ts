@@ -215,6 +215,27 @@ export async function synthesizeScript(
   const tracks: AudioTrack[] = [];
   for (const [i, scene] of script.scenes.entries()) {
     const outPath = resolve(PATHS.audio, jobId, `scene-${String(i).padStart(2, '0')}.mp3`);
+    // 문장 단위로 나눠 합성 — 경계 시각을 알아야 중앙 카드가 말을 따라 반응한다.
+    // 파일은 이어붙이지 않는다: 렌더러가 문장 파일들을 순차 재생한다 (wav/mp3 무관).
+    const sentences = splitSentences(scene.narration);
+    if (provider.name !== 'stub' && sentences.length > 1) {
+      const segments: { staticPath: string; durationSec: number; text?: string }[] = [];
+      for (const [k, sent] of sentences.entries()) {
+        const partPath = resolve(PATHS.audio, jobId, `scene-${String(i).padStart(2, '0')}-s${k}.mp3`);
+        const r = await provider.synthesize(sent, partPath, options);
+        if (!r.staticPath) throw new Error('문장 합성 결과에 파일 경로가 없습니다.');
+        segments.push({ staticPath: r.staticPath, durationSec: r.durationSec, text: sent });
+      }
+      const total = segments.reduce((a, b) => a + b.durationSec, 0);
+      tracks.push({
+        sceneIndex: i,
+        staticPath: segments[0]!.staticPath,
+        durationSec: Math.max(total, estimateDuration(scene.caption), 1.4),
+        segments,
+      });
+      log.info(`  장면 ${i + 1}/${script.scenes.length} · ${total.toFixed(1)}초 · 문장 ${sentences.length}`);
+      continue;
+    }
     const { staticPath, durationSec } = await provider.synthesize(
       scene.narration,
       outPath,
@@ -229,4 +250,15 @@ export async function synthesizeScript(
     log.info(`  장면 ${i + 1}/${script.scenes.length} · ${durationSec.toFixed(1)}초`);
   }
   return tracks;
+}
+
+/** 한국어 문장 분리 — 종결부호 뒤에서 자른다. 너무 짧은 조각(6자 미만)은 앞에 붙인다. */
+function splitSentences(text: string): string[] {
+  const raw = text.split(/(?<=[.!?…])\s+/).map((t) => t.trim()).filter(Boolean);
+  const out: string[] = [];
+  for (const part of raw) {
+    if (out.length && part.length < 6) out[out.length - 1] += ' ' + part;
+    else out.push(part);
+  }
+  return out;
 }

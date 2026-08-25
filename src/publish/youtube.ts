@@ -15,6 +15,8 @@ import type { PublishRecord, Script } from '../types.js';
  * 공개 발행하려면 Google 감사(audit)를 통과해야 한다.
  */
 export interface YouTubeOptions {
+  /** 커스텀 썸네일 PNG 절대 경로 — 있으면 업로드 후 thumbnails.set */
+  thumbnailPath?: string;
   /** ISO datetime. When set, the video uploads private with a scheduled publish time. */
   publishAt?: string;
 }
@@ -67,6 +69,18 @@ export async function publishToYouTube(
   });
 
   const id = res.data.id;
+
+  if (options.thumbnailPath) {
+    try {
+      await youtube.thumbnails.set({
+        videoId: id!,
+        media: { mimeType: 'image/png', body: createReadStream(options.thumbnailPath) },
+      });
+      log.info('  커스텀 썸네일 적용');
+    } catch (e) {
+      log.warn(`  썸네일 업로드 실패(무시): ${e instanceof Error ? e.message : e}`);
+    }
+  }
   if (!id) throw new Error('유튜브가 영상 ID 를 반환하지 않았습니다.');
 
   if (env.youtube.privacyStatus() === 'private') {

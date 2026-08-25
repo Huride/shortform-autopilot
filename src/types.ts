@@ -55,6 +55,8 @@ export interface AudioTrack {
    */
   staticPath?: string;
   durationSec: number;
+  /** 문장 단위 합성 결과 — 렌더가 순차 재생하고, 경계마다 중앙 카드가 반응한다. */
+  segments?: { staticPath: string; durationSec: number; text?: string }[];
 }
 
 export type Platform = 'youtube' | 'instagram';
@@ -128,6 +130,10 @@ export interface Job {
   backgroundImage?: string;
   /** 렌더 산출물의 절대 경로 */
   videoPath?: string;
+  /** 주간 롱폼 커스텀 썸네일 PNG (절대 경로). */
+  thumbnailPath?: string;
+  /** 썸네일 문구 — 프레임 단계에서 저장. */
+  thumb?: { top: string; bottom: string; weekLabel: string; bg?: string };
   /** 인스타 발행에 필요한 공개 URL */
   publicUrl?: string;
   published?: PublishRecord[];

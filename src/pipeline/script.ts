@@ -95,8 +95,13 @@ export const VISUAL_RULES = `**Scene visuals (visualKind)**
     and visualSub adds one line on why it matters.
   - **quote**: when the scene quotes someone. The quoted text must be something
     **actually said** — paraphrase inside quote marks is fabrication.
-  - **contrast**: two values in opposition. Promise vs. cost, announced vs. actual,
-    for vs. against. The right cell is the side the channel emphasizes.
+  - **contrast**: ONLY for a clear opposition between different actors or points
+    in time — claim vs. verified fact, announced vs. actual, for vs. against,
+    before vs. after. The right cell is the side the channel emphasizes.
+    **Two actions by the same actor are NOT a contrast** — putting "party X's
+    remedy vs. party X's bill" in a VS card confuses viewers about who opposes
+    whom. Parallel facts like that belong in a list ("X's two moves: 1)… 2)…")
+    or a keyword. When unsure whether a VS truly holds, don't use it.
   - **list**: when enumeration is the point — attendees, timeline, 2–3 cases.
     visualLabel is the list title, visualItems the entries, each short.
   - **keyword**: **the default for commentary scenes.** Stamp the scene's claim

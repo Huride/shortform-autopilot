@@ -68,6 +68,18 @@ docs/           build guide, platform setup (click-level), localization notes
   structure with your channel's own scene-by-scene arc in config — e.g. a
   "memory anchor" hook ("remember this one number today"), proof section,
   conditional verdict, then sign-off. The prompt enforces it per scene.
+- **Sentence-level sync**: narration is synthesized per sentence, so the
+  renderer knows exactly when each sentence starts — the center card pulses at
+  every sentence boundary, the sign-off sentence triggers the brand outro the
+  moment it begins, and the hook card cuts away in under a second.
+- **Instagram card-news carousels**: every scene card re-renders as a 4:5
+  still (cover → per-issue hook + key cards → closing), uploads to R2, and
+  publishes as an IG carousel with container-status polling. One command turns
+  yesterday's videos into a lunchtime feed post.
+- **Auto thumbnails for weekly longforms**: a 1280×720 still (lead issues +
+  through-line badge over the week's artwork) rendered and set via the YouTube
+  API — plus a title formula (lead issues + synthesis promise) and an
+  above-the-fold scope nudge in the description, built for CTR without bait.
 - **Screen follows the narration**: a scene can carry a second visual
   (`visual2`) that swaps in mid-scene when the focus shifts (index chart →
   stock logos) — or, with `stackVisuals`, stays stacked: the first card holds

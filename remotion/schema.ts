@@ -78,6 +78,12 @@ export type ShortScene = {
   emphasis?: string;
   /** remotion/public 기준 상대 경로. 없으면 무음으로 렌더된다. */
   audioSrc?: string;
+  /** 문장 단위 오디오 — 순차 재생. 있으면 audioSrc 대신 이걸 쓴다. */
+  audioSegments?: { src: string; from: number }[];
+  /** 문장 경계 프레임(장면 시작 기준) — 중앙 카드가 이 시점마다 킥 한다. */
+  sentenceKicks?: number[];
+  /** 이 프레임(장면 시작 기준)부터 브랜드 아웃트로가 덮는다 — 사인오프 문장 시작점. */
+  outroFrom?: number;
   /** 있으면 장면 중앙에 인포그래픽 카드를 띄운다. 시선 리듬용. */
   visual?: SceneVisual;
   /** 있으면 장면 후반부에 visual 을 이 카드로 교체한다 (말의 초점 이동 추적). */

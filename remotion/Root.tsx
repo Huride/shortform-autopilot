@@ -1,6 +1,8 @@
 import React from 'react';
 import { Composition } from 'remotion';
 import { InfoShort } from './InfoShort';
+import { CarouselCard, defaultCarouselProps } from './CarouselCard';
+import { WeeklyThumb, defaultWeeklyThumbProps } from './WeeklyThumb';
 import { WeeklyRecap } from './WeeklyRecap';
 import {
   COMPOSITION_ID,
@@ -15,6 +17,26 @@ const FPS = 30;
 
 export const RemotionRoot: React.FC = () => (
   <>
+    {/* 인스타 피드 카드뉴스 — 4:5 스틸 전용 */}
+    <Composition
+      id="CarouselCard"
+      component={CarouselCard}
+      fps={FPS}
+      width={1080}
+      height={1350}
+      durationInFrames={1}
+      defaultProps={defaultCarouselProps}
+    />
+    {/* 주간 롱폼 썸네일 — 1280×720 스틸 전용 */}
+    <Composition
+      id="WeeklyThumb"
+      component={WeeklyThumb}
+      fps={FPS}
+      width={1280}
+      height={720}
+      durationInFrames={1}
+      defaultProps={defaultWeeklyThumbProps}
+    />
     <Composition
       id={COMPOSITION_ID}
       component={InfoShort}
