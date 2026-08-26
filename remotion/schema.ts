@@ -34,6 +34,13 @@ export type Theme = {
   background: 'gradient' | 'split' | 'grid';
   /** plain = 글자만, block = 강조 단어에 accent 블록 */
   captionStyle: 'plain' | 'block';
+  /**
+   * 강조어(emphasis) 연출. 없으면 captionStyle 에서 유도한다
+   * (block → box, plain → color). 채널마다 다르게 잡아 포맷 정체성을 만든다.
+   * color=액센트 색 / box=액센트 배경 블록 / underline=두꺼운 밑줄 /
+   * glow=네온 발광 / chip=테두리 칩
+   */
+  emphasisStyle?: 'color' | 'box' | 'underline' | 'glow' | 'chip';
   /** 상단 제목 칩 표시 여부 */
   titleChip: boolean;
   progress: 'bar' | 'dots' | 'none';

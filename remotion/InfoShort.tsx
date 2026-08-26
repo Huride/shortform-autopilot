@@ -37,15 +37,12 @@ const PhotoBackdrop: React.FC<{ src: string; theme: Theme; sceneBounds: number[]
 
   // 현재 장면 시작 이후 경과 프레임 → 컷 순간 1.05 로 튀었다가 0.4초에 걸쳐 복귀
   const sceneStart = [0, ...sceneBounds].filter((b) => b <= frame).pop() ?? 0;
-  const sincecut = frame - sceneStart;
-  const punch = interpolate(sincecut, [0, fps * 0.4], [0.05, 0], {
-    extrapolateRight: 'clamp',
-  });
-
+  // 씬 컷마다 주던 펀치줌은 배경이 깜빡이는 느낌을 만들어 제거했다 —
+  // 배경은 느린 드리프트만, 리듬은 카드·자막이 만든다.
   return (
     <AbsoluteFill style={{ backgroundColor: theme.bg }}>
       <AbsoluteFill
-        style={{ transform: `scale(${1.08 + t * 0.1 + punch}) translateY(${-t * 22}px)` }}
+        style={{ transform: `scale(${1.08 + t * 0.06}) translateY(${-t * 16}px)` }}
       >
         <Img
           src={staticFile(src)}
@@ -135,6 +132,11 @@ const Backdrop: React.FC<{ theme: Theme }> = ({ theme }) => {
 
 /* ─── 자막 ────────────────────────────────────────────────────────── */
 
+/** 대본이 '\n' 으로 줄바꿈을 직접 지정할 수 있게 한다 — 자동 줄바꿈이 어색한 한국어 구문 대응. */
+function br(text: string): React.ReactNode[] {
+  return text.split('\n').flatMap((line, i) => (i === 0 ? [line] : [<br key={`b${i}`} />, line]));
+}
+
 /** emphasis 는 caption 의 부분 문자열임이 보장된다 (script.ts 의 normalize 가 검증). */
 function splitCaption(scene: ShortScene): [string, string, string] {
   const { caption, emphasis } = scene;
@@ -153,17 +155,52 @@ const Caption: React.FC<{ scene: ShortScene; theme: Theme }> = ({ scene, theme }
   const slide = interpolate(enter, [0, 1], [lower ? -44 : 40, 0]);
   const [before, mid, after] = splitCaption(scene);
 
-  const emphasisStyle: React.CSSProperties =
-    theme.captionStyle === 'block'
-      ? {
-          backgroundColor: theme.accent,
-          color: theme.bg,
-          padding: '0 0.14em',
-          borderRadius: 6,
-          boxDecorationBreak: 'clone',
-          WebkitBoxDecorationBreak: 'clone',
-        }
-      : { color: theme.accent };
+  // 채널별 강조 연출 — 색만 다른 게 아니라 크기·기울기·구조가 달라야 포맷이 구분된다.
+  // 강조어는 중간에서 줄바꿈되지 않는다 (nowrap) — 어색한 분절 방지.
+  const mode = theme.emphasisStyle ?? (theme.captionStyle === 'block' ? 'box' : 'color');
+  const EMPHASIS: Record<NonNullable<Theme['emphasisStyle']>, React.CSSProperties> = {
+    // 서사형 — 크기만 살짝 키운 액센트 색. 가장 절제된 형태.
+    color: { color: theme.accent, fontSize: '1.14em' },
+    // 라벨형 — 기울어진 스티커처럼 붙는 배경 블록.
+    box: {
+      backgroundColor: theme.accent,
+      color: theme.bg,
+      padding: '0.02em 0.18em',
+      borderRadius: 8,
+      display: 'inline-block',
+      transform: 'rotate(-2.2deg)',
+      margin: '0 0.08em',
+    },
+    // 밑줄형 — 본문과 같은 크기, 두꺼운 액센트 밑줄만. 브리핑의 담백함.
+    underline: {
+      color: theme.fg,
+      textDecorationLine: 'underline',
+      textDecorationColor: theme.accent,
+      textDecorationThickness: '0.14em',
+      textUnderlineOffset: '0.16em',
+    },
+    // 네온형 — 숫자가 훨씬 크게, 발광하며 튀어나온다.
+    glow: {
+      color: theme.accent,
+      textShadow: `0 0 20px ${theme.accent}B3, 0 0 60px ${theme.accent}66`,
+      fontSize: '1.4em',
+      display: 'inline-block',
+      lineHeight: 1,
+      verticalAlign: 'baseline',
+    },
+    // 도장형 — 반대로 기울어 찍힌 판정 스탬프.
+    chip: {
+      color: theme.accent,
+      border: `4px solid ${theme.accent}`,
+      borderRadius: 12,
+      padding: '0.02em 0.18em',
+      display: 'inline-block',
+      transform: 'rotate(2.4deg)',
+      margin: '0 0.08em',
+      boxShadow: `0 6px 24px ${theme.bg}99`,
+    },
+  };
+  const emphasisStyle: React.CSSProperties = { whiteSpace: 'nowrap', ...EMPHASIS[mode] };
 
   return (
     <AbsoluteFill
@@ -189,9 +226,9 @@ const Caption: React.FC<{ scene: ShortScene; theme: Theme }> = ({ scene, theme }
           textShadow: `0 8px 40px ${theme.bg}CC`,
         }}
       >
-        {before}
+        {br(before)}
         {mid ? <span style={emphasisStyle}>{mid}</span> : null}
-        {after}
+        {br(after)}
       </div>
     </AbsoluteFill>
   );
@@ -533,7 +570,7 @@ const VisualCard: React.FC<{ visual: SceneVisual; theme: Theme }> = ({ visual, t
         transform: `translateY(${interpolate(enter, [0, 1], [-24, 0])}px)`,
       }}
     >
-      {text}
+      {br(text)}
     </div>
   );
 
@@ -1077,7 +1114,7 @@ const TitleChip: React.FC<{ text: string; theme: Theme }> = ({ text, theme }) =>
           wordBreak: 'keep-all',
         }}
       >
-        {text}
+        {br(text)}
       </div>
     </AbsoluteFill>
   );
@@ -1332,13 +1369,31 @@ export const InfoShort: React.FC<ShortProps> = ({
         >
           {scene.bg ? (
             <AbsoluteFill>
+              {/*
+               * 실사(스톡)도 채널 세계관 안에 앉힌다 — 채도를 누르고 어둡게 한 뒤
+               * 채널 배경색을 multiply 로 얹어 어떤 사진이 와도 톤이 통일되게.
+               * 이 그레이딩이 없으면 생성 배경과 실사가 딴 영상처럼 보인다.
+               */}
               <Img
                 src={staticFile(scene.bg)}
-                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'cover',
+                  filter: 'saturate(0.8) brightness(0.92) contrast(1.03)',
+                }}
+              />
+              <AbsoluteFill
+                style={{ backgroundColor: theme.bg, opacity: 0.16, mixBlendMode: 'multiply' }}
               />
               <AbsoluteFill
                 style={{
                   background: `linear-gradient(180deg, ${theme.bg}99 0%, ${theme.bg}55 40%, ${theme.bg}CC 100%)`,
+                }}
+              />
+              <AbsoluteFill
+                style={{
+                  background: `radial-gradient(110% 70% at 50% 8%, ${theme.accent}12 0%, transparent 60%)`,
                 }}
               />
             </AbsoluteFill>
