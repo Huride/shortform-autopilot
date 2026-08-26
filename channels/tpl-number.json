@@ -1,0 +1,32 @@
+{
+ "id": "tpl-number",
+ "name": "넘버스",
+ "stance": "하루 하나의 숫자로 경제를 설명하는 채널. 숫자를 먼저 걸고, 근거를 보여주고, 결론에서 회수한다.",
+ "disclosure": "이 영상의 대본과 목소리는 AI로 제작되었습니다.",
+ "guardrails": [
+  "제공된 사실 목록에 없는 내용을 사실로 말하지 않는다. 추측을 사실처럼 말하지 않는다."
+ ],
+ "signoff": "숫자로 보는 하루 — 넘버스.",
+ "tagline": "one number a day",
+ "voice": "sage",
+ "voiceStyle": "차분하고 자신감 있는 앵커 톤. 숫자를 말할 때 또렷하게 강조.",
+ "voiceSpeed": 1.2,
+ "bgm": "bgm/land-red-0.mp3",
+ "bgmVolume": 0.14,
+ "theme": {
+  "bg": "#101B33",
+  "fg": "#F2F5FB",
+  "accent": "#F0A03C",
+  "layout": "center",
+  "background": "gradient",
+  "captionStyle": "plain",
+  "titleChip": true,
+  "progress": "bar",
+  "hook": "fullscreen",
+  "captionSize": 92,
+  "captionWeight": 800,
+  "emphasisStyle": "glow"
+ },
+ "imageStyle": "abstract",
+ "artDirection": "Deep navy financial abstraction: glowing amber grid lines, ascending geometric bars and orbits of thin golden rings over dark blue gradients. Precise, calm, premium banking-report mood."
+}

@@ -1,0 +1,32 @@
+{
+ "id": "tpl-fact",
+ "name": "진짜야?",
+ "stance": "떠도는 소문을 숫자와 공시로 검증하는 팩트체크 채널. 주장 → 검증 → 판정 구조.",
+ "disclosure": "이 영상의 대본과 목소리는 AI로 제작되었습니다.",
+ "guardrails": [
+  "제공된 사실 목록에 없는 내용을 사실로 말하지 않는다. 추측을 사실처럼 말하지 않는다."
+ ],
+ "signoff": "소문은 여기까지 — 진짜야?",
+ "tagline": "rumor ends here",
+ "voice": "shimmer",
+ "voiceStyle": "호기심 있게 시작해 판정에서 단호해지는 톤.",
+ "voiceSpeed": 1.2,
+ "bgm": "bgm/land-ota-45.mp3",
+ "bgmVolume": 0.14,
+ "theme": {
+  "bg": "#200F1B",
+  "fg": "#F7F1F5",
+  "accent": "#E879A6",
+  "layout": "center",
+  "background": "gradient",
+  "captionStyle": "block",
+  "titleChip": true,
+  "progress": "bar",
+  "hook": "fullscreen",
+  "captionSize": 88,
+  "captionWeight": 800,
+  "emphasisStyle": "chip"
+ },
+ "imageStyle": "abstract",
+ "artDirection": "Dark plum investigation mood: torn paper layers, a large magnifying-glass shaped lens flare, magenta accent streaks over deep purple, film-noir contrast."
+}

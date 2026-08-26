@@ -1,0 +1,32 @@
+{
+ "id": "tpl-critic",
+ "name": "더 마진",
+ "stance": "모든 발표를 소비자 지갑의 관점에서 다시 계산하는 채널. 팩트는 출처대로, 코멘터리는 단호하게.",
+ "disclosure": "이 영상의 대본과 목소리는 AI로 제작되었습니다.",
+ "guardrails": [
+  "제공된 사실 목록에 없는 내용을 사실로 말하지 않는다. 추측을 사실처럼 말하지 않는다."
+ ],
+ "signoff": "마케팅 말고 계산으로 — 더 마진.",
+ "tagline": "the math, not the marketing",
+ "voice": "ash",
+ "voiceStyle": "단단하고 회의적인 해설자 톤. 문장을 힘있게 끝맺는다.",
+ "voiceSpeed": 1.2,
+ "bgm": "bgm/land-ota-0.mp3",
+ "bgmVolume": 0.14,
+ "theme": {
+  "bg": "#221A0E",
+  "fg": "#F5F3EE",
+  "accent": "#F59E0B",
+  "layout": "lower",
+  "background": "grid",
+  "captionStyle": "block",
+  "titleChip": true,
+  "progress": "bar",
+  "hook": "banner",
+  "captionSize": 84,
+  "captionWeight": 700,
+  "emphasisStyle": "box"
+ },
+ "imageStyle": "abstract",
+ "artDirection": "Clean premium editorial backdrop: deep warm brown field with a single soft amber gradient glow from the top, very subtle paper grain, at most one thin geometric line motif. Calm, minimal, uncluttered — nothing busy or surreal."
+}

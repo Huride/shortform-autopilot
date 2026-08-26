@@ -1,0 +1,32 @@
+{
+ "id": "tpl-story",
+ "name": "그때 그 회사",
+ "stance": "기업의 흥망을 기승전결 서사로 풀어내는 스토리텔링 채널. 마지막에 반전 하나.",
+ "disclosure": "이 영상의 대본과 목소리는 AI로 제작되었습니다.",
+ "guardrails": [
+  "제공된 사실 목록에 없는 내용을 사실로 말하지 않는다. 추측을 사실처럼 말하지 않는다."
+ ],
+ "signoff": "이야기는 계속됩니다 — 그때 그 회사.",
+ "tagline": "every company has a story",
+ "voice": "echo",
+ "voiceStyle": "낮고 서사적인 내레이터 톤. 이야기를 들려주듯 여유 있게.",
+ "voiceSpeed": 1.15,
+ "bgm": "bgm/land-ota-90.mp3",
+ "bgmVolume": 0.14,
+ "theme": {
+  "bg": "#0F1830",
+  "fg": "#EDF2FA",
+  "accent": "#7DD3FC",
+  "layout": "lower",
+  "background": "gradient",
+  "captionStyle": "plain",
+  "titleChip": true,
+  "progress": "none",
+  "hook": "banner",
+  "captionSize": 86,
+  "captionWeight": 700,
+  "emphasisStyle": "color"
+ },
+ "imageStyle": "abstract",
+ "artDirection": "Cinematic deep blue narrative mood: a single winding glowing path rising and falling across dark mountains of geometric shapes, sky-blue accent light, epic but restrained."
+}
