@@ -35,3 +35,10 @@ remotion/public/bg/
 .vscode/*
 !.vscode/extensions.json
 logs/
+
+# === Vercel ===
+.vercel/
+
+# Next.js
+.next/
+web/.vercel/
