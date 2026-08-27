@@ -66,7 +66,7 @@ const ScriptSchema = z.object({
     .describe(
       'The through-line question shown full screen at the start and kept on top of every scene. A natural, complete sentence of 5–10 words, with a comma where it should break into two lines. e.g. "Merging the academies, is this really okay?"',
     ),
-  scenes: z.array(SceneSchema).describe('7–11 scenes. Total narration should land at 30–50 seconds — scenes are SHORT (one or two sentences each).'),
+  scenes: z.array(SceneSchema).describe('Scene count follows the Structure section of the system prompt (one scene per structure step when an arc is given; otherwise 7–11 short scenes). Total narration 30–50 seconds — scenes are SHORT (one or two sentences each).'),
   description: z
     .string()
     .describe(
@@ -232,6 +232,8 @@ actually cost existing users more?")
 
 ${channel.scriptFrame?.length ? `## Structure — this channel's narrative arc (follow scene-by-scene, in order)
 ${channel.scriptFrame.map((r, n) => `${n + 1}. ${r}`).join('\n')}
+**Exactly one scene per numbered step — never split a step into multiple scenes,
+never add scenes beyond the steps.** If material overflows, cut material, not structure.
 The final scene MUST end with the channel sign-off, word for word: "${channel.signoff ?? ''}"` : `## Structure — cold open → what happened → key facts → where it stands → the take
 1. **Cold open (one scene)**: open on the question or the controversy itself.
    No greetings, no channel intro, no "today we'll look at". First second earns
@@ -398,7 +400,17 @@ export interface ScriptInput {
 export async function generateScript({ topic, channel, brief }: ScriptInput): Promise<Script> {
   const system = channel ? channelSystem(channel) : GENERIC_SYSTEM;
   const user = brief
-    ? `${briefBlock(brief)}\n\nWrite a 30–50 second short-form script from the above.`
+    ? `${briefBlock(brief)}
+
+Write a 30–50 second short-form script from the above.
+
+## Using the sources
+- The facts list GROUNDS the script — state facts as facts, in your own words.
+- Do NOT narrate outlet or article names. Never write "한겨레 제목은…", "OO 보도에 따르면…",
+  or walk through articles one by one. Viewers want the story, not a press review.
+- Attribute explicitly ONLY for caution-list items (allegations, claims, disputed points),
+  once each and briefly: "~라는 의혹이 제기됐다" / "~라는 주장이 나왔다".
+- Sources still appear in the pinned comment — you do not need to credit them on screen.`
     : `Write a 30–50 second informational short-form script on this topic.
 
 Topic: ${topic}
