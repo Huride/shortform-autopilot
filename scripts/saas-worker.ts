@@ -133,7 +133,18 @@ async function generateOne(): Promise<boolean> {
     // 실시간 사실 수집 → 팩트락. 기사가 없으면(개념·노하우형 주제) 일반 지식 모드.
     let brief;
     try {
-      const articles = await searchNews(job.topic);
+      // 문장형 주제("~에 대해 분석하고 …하는 영상")는 검색이 안 잡힌다 —
+      // 실패 시 지시어를 걷어낸 핵심 키워드로 재검색.
+      let articles = await searchNews(job.topic);
+      if (articles.length < 2) {
+        const keywords = job.topic
+          .replace(/(에 대해|대해서|관련|여부|분석|정리|팩트\s*체크|사실\s*전달|하는|하고|해주는|영상|후|및)/g, ' ')
+          .replace(/\s+/g, ' ').trim().split(' ').slice(0, 5).join(' ');
+        if (keywords && keywords !== job.topic) {
+          log.info(`  키워드 재검색: "${keywords}"`);
+          articles = await searchNews(keywords);
+        }
+      }
       if (articles.length >= 2) {
         log.info(`  기사 ${articles.length}건 수집 — 팩트 추출`);
         brief = await buildBrief({
