@@ -132,6 +132,12 @@ export type ShortProps = {
   brandLogo?: string;
   /** Watermark / outro tagline (channel config `tagline`). */
   brandTagline?: string;
+  /** 좌상단 워터마크 표시 여부. 기본 true — brandTagline 이 있어도 끌 수 있다. */
+  showWatermark?: boolean;
+  /** 아웃트로에 태그라인 줄 표시 여부. 기본 true. */
+  outroTagline?: boolean;
+  /** 아웃트로 배경 이미지 (remotion/public 기준 상대 경로). 없으면 테마 그라디언트. */
+  outroBg?: string;
 };
 
 export const COMPOSITION_ID = 'InfoShort';

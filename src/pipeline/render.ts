@@ -45,6 +45,9 @@ export interface RenderExtras {
   /** 로고 이미지 (remotion/public 기준). 아웃트로에서 원형 크롭. */
   brandLogo?: string;
   brandTagline?: string;
+  showWatermark?: boolean;
+  outroTagline?: boolean;
+  outroBg?: string;
 }
 
 export function toShortProps(
@@ -64,6 +67,9 @@ export function toShortProps(
     ...(extras.bgmVolume !== undefined ? { bgmVolume: extras.bgmVolume } : {}),
     ...(extras.brand ? { brand: extras.brand } : {}),
     ...(extras.brandTagline ? { brandTagline: extras.brandTagline } : {}),
+    ...(extras.showWatermark !== undefined ? { showWatermark: extras.showWatermark } : {}),
+    ...(extras.outroTagline !== undefined ? { outroTagline: extras.outroTagline } : {}),
+    ...(extras.outroBg ? { outroBg: extras.outroBg } : {}),
     ...(extras.brandLogo ? { brandLogo: extras.brandLogo } : {}),
     scenes: script.scenes.map((scene, i) => {
       const track = byIndex.get(i);

@@ -253,8 +253,23 @@ async function processOne(): Promise<boolean> {
     const styleKey = job.script?.artStyle as string | undefined;
     const styleOv = styleKey ? ART_STYLES[styleKey] : undefined;
     const brand = await loadBranding(job.user_id);
+    // 색상 톤 오버라이드 — 에디터에서 고른 배경/포인트 색. 글자색은 배경 밝기로 자동 결정.
+    const colors = job.script?.colors as { bg?: string; accent?: string } | undefined;
+    let themeOv: typeof baseChannel.theme | undefined;
+    if (baseChannel.theme && (colors?.bg || colors?.accent)) {
+      const hex = (colors.bg ?? baseChannel.theme.bg).replace('#', '');
+      const [r, g, b] = [0, 2, 4].map((o) => parseInt(hex.slice(o, o + 2), 16) / 255);
+      const lum = 0.2126 * (r ?? 0) + 0.7152 * (g ?? 0) + 0.0722 * (b ?? 0);
+      themeOv = {
+        ...baseChannel.theme,
+        ...(colors.bg ? { bg: colors.bg } : {}),
+        ...(colors.accent ? { accent: colors.accent } : {}),
+        fg: lum > 0.55 ? '#17171C' : '#F6F4F0',
+      };
+    }
     const channel = {
       ...baseChannel,
+      ...(themeOv ? { theme: themeOv } : {}),
       ...(styleOv ? { artDirection: styleOv.ad, imageStyle: styleOv.style ?? ('abstract' as const) } : {}),
       ...(brand.name ? { name: brand.name } : {}),
       ...(brand.signoff ? { signoff: brand.signoff } : {}),
@@ -263,7 +278,11 @@ async function processOne(): Promise<boolean> {
     };
     const pickedBgm = job.script?.bgm as string | undefined;
     const bgmSrc = pickedBgm === 'none' ? undefined : pickedBgm || channel.bgm;
-    const script = toScript(job.script, [channel.signoff, baseChannel.signoff]);
+    // 아웃트로 설정 — enabled=false 면 브랜드 화면·사인오프 매칭 자체를 생략한다.
+    const outroCfg = (job.script?.outro ?? {}) as { enabled?: boolean; tagline?: boolean; bg?: string };
+    const outroOn = outroCfg.enabled !== false;
+    const watermarkOn = (job.script?.watermark as boolean | undefined) !== false;
+    const script = toScript(job.script, outroOn ? [channel.signoff, baseChannel.signoff] : []);
 
     // 씬 전용 생성 — bg='gen' 씬은 그 씬의 내용(자막·나레이션)을 소재로
     // 개별 이미지를 그린다. 씬마다 다른 그림이 필요할 때 사용 (씬당 이미지 1장).
@@ -285,7 +304,7 @@ async function processOne(): Promise<boolean> {
 
     // 채널 아트 배경 — '채널 아트' 를 쓰는 씬이 있을 때만 잡당 1장 생성
     // (모든 씬이 실사면 어차피 가려진다 — 생성 비용을 쓰지 않는다)
-    const needsArt = script.scenes.some((s) => !s.bg);
+    const needsArt = script.scenes.some((s) => !s.bg) || (outroOn && outroCfg.bg === 'art');
     let backgroundImage: string | undefined;
     if (!needsArt) log.info('  모든 씬이 실사 배경 — 채널 아트 생성 건너뜀');
     try {
@@ -297,12 +316,33 @@ async function processOne(): Promise<boolean> {
       log.warn(`  배경 생성 실패 — 테마 배경으로 진행: ${e instanceof Error ? e.message : e}`);
     }
 
+    // 아웃트로 배경 — 'art'=공용 생성 아트, http=다운로드, 그 외=로컬 상대 경로
+    let outroBg: string | undefined;
+    if (outroOn && outroCfg.bg) {
+      if (outroCfg.bg === 'art') outroBg = backgroundImage;
+      else if (outroCfg.bg.startsWith('http')) {
+        const res = await fetch(outroCfg.bg, {
+          headers: { 'User-Agent': 'shortform-autopilot-worker/1.0 (background fetch; contact: ops@autopilot)' },
+        }).catch(() => null);
+        if (res?.ok) {
+          const file = `${job.id}-outro.jpg`;
+          writeFileSync(resolve(dlDir, file), Buffer.from(await res.arrayBuffer()));
+          outroBg = `bg/dl/${file}`;
+        } else log.warn('  아웃트로 배경 다운로드 실패 — 테마 배경으로 진행');
+      } else outroBg = outroCfg.bg;
+    }
+
     const audio = await synthesizeScript(job.id, script, {
       voice: channel.voice, style: channel.voiceStyle, speed: channel.voiceSpeed,
     });
     const props = toShortProps(script, audio, channel.theme, {
-      signoff: channel.signoff, backgroundImage, bgmSrc, bgmVolume: channel.bgmVolume,
-      brand: channel.name, brandTagline: channel.tagline,
+      signoff: outroOn ? channel.signoff : undefined,
+      backgroundImage, bgmSrc, bgmVolume: channel.bgmVolume,
+      brand: outroOn ? channel.name : undefined,
+      brandTagline: channel.tagline,
+      showWatermark: watermarkOn,
+      outroTagline: outroCfg.tagline !== false,
+      ...(outroBg ? { outroBg } : {}),
     });
     invalidateBundle(); // 새 오디오·배경이 번들 public 사본에 들어가야 한다
     const videoPath = await renderShort(job.id, props);

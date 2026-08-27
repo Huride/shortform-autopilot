@@ -56,6 +56,24 @@ const TEMPLATES = [
   { id: 'tpl-fact', name: '팩트체크형', emph: 'chip', emphName: '도장 강조' },
   { id: 'tpl-story', name: '스토리텔링형', emph: 'color', emphName: '색상 강조' },
 ];
+// 템플릿 기본 색상 — 색상 톤 피커의 '기본' 스와치 미리보기용 (channels/*.json theme 과 동일)
+const TPL_COLORS: Record<string, { bg: string; accent: string }> = {
+  'tpl-critic': { bg: '#221A0E', accent: '#F59E0B' },
+  'tpl-number': { bg: '#101B33', accent: '#F0A03C' },
+  'tpl-brief': { bg: '#0E2018', accent: '#4CC490' },
+  'tpl-fact': { bg: '#200F1B', accent: '#E879A6' },
+  'tpl-story': { bg: '#0F1830', accent: '#7DD3FC' },
+};
+const COLOR_TONES = [
+  { name: '딥 네이비', bg: '#0B1526', accent: '#4C9AFF' },
+  { name: '블랙 골드', bg: '#121212', accent: '#E3B341' },
+  { name: '포레스트', bg: '#0E1F18', accent: '#4ADE80' },
+  { name: '와인', bg: '#26101A', accent: '#F472B6' },
+  { name: '슬레이트', bg: '#1A1D24', accent: '#94A3B8' },
+  { name: '바이올렛', bg: '#171130', accent: '#A78BFA' },
+  { name: '크림슨', bg: '#1F0D0D', accent: '#F87171' },
+  { name: '아이보리 라이트', bg: '#F4EFE6', accent: '#C2410C' },
+];
 const SUGGESTIONS = [
   { t: '통신 3사, 5G 중간요금제 일제 개편', s: '“중간”이 정말 중간인지 계산해볼 만한 소재' },
   { t: '배달앱 무료배달 종료 수순', s: '무료의 비용은 어디에 숨어 있었나' },
@@ -85,6 +103,13 @@ export default function Create() {
   const [brand, setBrand] = useState({ name: '', signoff: '', tagline: '' });
   const [brandRow, setBrandRow] = useState<string | null>(null);
   const [brandOpen, setBrandOpen] = useState(false);
+  const [colors, setColors] = useState<{ bg: string; accent: string } | null>(null); // null = 템플릿 기본
+  const [colorOpen, setColorOpen] = useState(false);
+  const [outroOn, setOutroOn] = useState(true);
+  const [outroTagline, setOutroTagline] = useState(true);
+  const [outroBg, setOutroBg] = useState(''); // '' = 테마 기본, 'art' = 생성 아트, url = 업로드 이미지
+  const [outroUploading, setOutroUploading] = useState(false);
+  const [watermark, setWatermark] = useState(true);
 
   useEffect(() => {
     const sb = getSupabase(); if (!sb) return;
@@ -117,6 +142,19 @@ export default function Create() {
     } finally { setUploading(null); }
   }
 
+  async function uploadOutroBg(file: File) {
+    const sb = getSupabase(); if (!sb) return;
+    const { data: { session } } = await sb.auth.getSession(); if (!session) return;
+    setOutroUploading(true);
+    try {
+      const fd = new FormData(); fd.append('file', file);
+      const r = await fetch('/api/upload', { method: 'POST', headers: { Authorization: `Bearer ${session.access_token}` }, body: fd });
+      const j = await r.json();
+      if (j.ok) setOutroBg(j.url);
+      else alert('업로드 실패: ' + j.error);
+    } finally { setOutroUploading(false); }
+  }
+
   async function searchStock() {
     if (!bgQuery.trim()) return;
     setBgSearching(true); setBgResults([]);
@@ -146,6 +184,10 @@ export default function Create() {
       setArtStyle(j.script.artStyle ?? '');
       setVoice(j.script.voice ?? ''); setVoiceProvider(j.script.voiceProvider ?? 'openai');
       setBgm(j.script.bgm ?? '');
+      setColors(j.script.colors ?? null);
+      const oc = j.script.outro ?? {};
+      setOutroOn(oc.enabled !== false); setOutroTagline(oc.tagline !== false); setOutroBg(oc.bg ?? '');
+      setWatermark(j.script.watermark !== false);
       setScenes((j.script.scenes as any[]).map((s) => ({
         narration: s.narration ?? '', caption: s.caption ?? '', emphasis: s.emphasis ?? '',
         visualLabel: KIND2LABEL[s.visual?.kind] ?? '키워드 스탬프', visual: s.visual, bg: s.bg,
@@ -187,6 +229,7 @@ export default function Create() {
     const { data: { session } } = await sb.auth.getSession();
     if (!session) { location.href = '/login'; return; }
     setGenError(''); setTopic(tpc); setPhase('generating');
+    setColors(null); setOutroOn(true); setOutroTagline(true); setOutroBg(''); setWatermark(true);
     const { data, error } = await sb.from('jobs')
       .insert({ user_id: session.user.id, topic: tpc, status: 'pending', script: { template } })
       .select('id').single();
@@ -220,6 +263,9 @@ export default function Create() {
       artStyle: artStyle || undefined,
       voice: voice || undefined, voiceProvider: voice ? voiceProvider : undefined,
       bgm: bgm || undefined,
+      colors: colors ?? undefined,
+      outro: { enabled: outroOn, tagline: outroTagline, bg: (outroOn && outroBg) || undefined },
+      watermark,
       approved: true,
     };
     const { error } = await sb.from('jobs').update({ script, status: 'scripted', error: null, video_url: null }).eq('id', jobId);
@@ -427,6 +473,48 @@ export default function Create() {
                 )}
               </div>
               <div className="card" style={{ padding: '14px 16px', marginBottom: 14 }}>
+                <label>색상 톤</label>
+                <button type="button" className="pickbtn" onClick={() => setColorOpen(!colorOpen)}>
+                  <span style={{ display: 'inline-block', width: 22, height: 22, borderRadius: 6, background: (colors ?? TPL_COLORS[template]).bg, border: '1px solid var(--line)', position: 'relative', flexShrink: 0 }}>
+                    <span style={{ position: 'absolute', right: 2, bottom: 2, width: 9, height: 9, borderRadius: '50%', background: (colors ?? TPL_COLORS[template]).accent }} />
+                  </span>
+                  {colors ? (COLOR_TONES.find((t) => t.bg === colors.bg && t.accent === colors.accent)?.name ?? '커스텀') : '템플릿 기본'}
+                  <span style={{ marginLeft: 'auto', color: 'var(--faint)' }}>▾</span>
+                </button>
+                {colorOpen && (
+                  <div style={{ marginTop: 10 }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 6 }}>
+                      {[{ name: '기본', ...TPL_COLORS[template], isDefault: true }, ...COLOR_TONES.map((t) => ({ ...t, isDefault: false }))].map((t) => {
+                        const sel = t.isDefault ? !colors : colors?.bg === t.bg && colors?.accent === t.accent;
+                        return (
+                          <button type="button" key={t.name} onClick={() => { setColors(t.isDefault ? null : { bg: t.bg, accent: t.accent }); }}
+                            style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '7px 8px', borderRadius: 9, cursor: 'pointer', textAlign: 'left', background: sel ? 'var(--accent-dim, rgba(124,140,255,.12))' : 'transparent', border: sel ? '1px solid var(--accent)' : '1px solid var(--line)', color: 'var(--ink)', fontSize: 11 }}>
+                            <span style={{ width: 20, height: 20, borderRadius: 6, background: t.bg, border: '1px solid var(--line)', position: 'relative', flexShrink: 0 }}>
+                              <span style={{ position: 'absolute', right: 2, bottom: 2, width: 8, height: 8, borderRadius: '50%', background: t.accent }} />
+                            </span>
+                            {t.name}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginTop: 10, fontSize: 12, color: 'var(--faint)' }}>
+                      직접 선택
+                      <label style={{ display: 'flex', gap: 5, alignItems: 'center', cursor: 'pointer' }}>배경
+                        <input type="color" value={(colors ?? TPL_COLORS[template]).bg}
+                          onChange={(e) => setColors({ ...(colors ?? TPL_COLORS[template]), bg: e.target.value })}
+                          style={{ width: 30, height: 24, padding: 0, border: '1px solid var(--line)', borderRadius: 6, background: 'none', cursor: 'pointer' }} />
+                      </label>
+                      <label style={{ display: 'flex', gap: 5, alignItems: 'center', cursor: 'pointer' }}>포인트
+                        <input type="color" value={(colors ?? TPL_COLORS[template]).accent}
+                          onChange={(e) => setColors({ ...(colors ?? TPL_COLORS[template]), accent: e.target.value })}
+                          style={{ width: 30, height: 24, padding: 0, border: '1px solid var(--line)', borderRadius: 6, background: 'none', cursor: 'pointer' }} />
+                      </label>
+                    </div>
+                    <p style={{ fontSize: 11, color: 'var(--faint)', margin: '8px 0 0' }}>배경·강조·진행바 색이 함께 바뀌고, 글자색은 배경 밝기에 맞춰 자동 조정돼요.</p>
+                  </div>
+                )}
+              </div>
+              <div className="card" style={{ padding: '14px 16px', marginBottom: 14 }}>
                 <button type="button" className="pickbtn" onClick={() => setBrandOpen(!brandOpen)}>
                   🏷 브랜딩 — {brand.name || '템플릿 기본'}
                   <span style={{ marginLeft: 'auto', color: 'var(--faint)' }}>▾</span>
@@ -439,7 +527,43 @@ export default function Create() {
                       <input value={brand.signoff} onChange={(e) => setBrand({ ...brand, signoff: e.target.value })} placeholder="템플릿 기본" /></div>
                     <div className="field" style={{ marginBottom: 6 }}><label>태그라인 (워터마크)</label>
                       <input value={brand.tagline} onChange={(e) => setBrand({ ...brand, tagline: e.target.value })} placeholder="템플릿 기본" /></div>
-                    <p style={{ fontSize: 11, color: 'var(--faint)', margin: 0 }}>렌더 시 저장·적용돼요. 시그니처를 바꿨다면 마지막 씬의 문장도 같이 고쳐주세요 — 문장이 달라도 아웃트로는 정상 표시됩니다.</p>
+                    <p style={{ fontSize: 11, color: 'var(--faint)', margin: '0 0 12px' }}>렌더 시 저장·적용돼요. 시그니처를 바꿨다면 마지막 씬의 문장도 같이 고쳐주세요 — 문장이 달라도 아웃트로는 정상 표시됩니다.</p>
+                    <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 13, cursor: 'pointer', marginBottom: 8 }}>
+                      <input type="checkbox" checked={watermark} onChange={(e) => setWatermark(e.target.checked)} style={{ width: 15, height: 15 }} />
+                      좌상단 워터마크 표시
+                    </label>
+                    <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 13, cursor: 'pointer' }}>
+                      <input type="checkbox" checked={outroOn} onChange={(e) => setOutroOn(e.target.checked)} style={{ width: 15, height: 15 }} />
+                      마지막 브랜드 페이지 (아웃트로)
+                    </label>
+                    {outroOn ? (
+                      <div style={{ margin: '8px 0 0 23px' }}>
+                        <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 12.5, cursor: 'pointer', marginBottom: 8, color: 'var(--ink)' }}>
+                          <input type="checkbox" checked={outroTagline} onChange={(e) => setOutroTagline(e.target.checked)} style={{ width: 14, height: 14 }} />
+                          태그라인 문구 표시
+                        </label>
+                        <div style={{ fontSize: 11.5, color: 'var(--faint)', marginBottom: 6 }}>아웃트로 배경</div>
+                        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                          {[{ id: '', label: '테마 색상' }, { id: 'art', label: '생성 아트' }].map((o) => (
+                            <button type="button" key={o.id || 'default'} onClick={() => setOutroBg(o.id)}
+                              style={{ padding: '5px 10px', borderRadius: 8, fontSize: 12, cursor: 'pointer', border: outroBg === o.id ? '1px solid var(--accent)' : '1px solid var(--line)', color: outroBg === o.id ? 'var(--accent)' : 'var(--ink)', background: 'transparent' }}>
+                              {o.label}
+                            </button>
+                          ))}
+                          <label style={{ padding: '5px 10px', borderRadius: 8, fontSize: 12, cursor: 'pointer', border: outroBg.startsWith('http') ? '1px solid var(--accent)' : '1px solid var(--line)', color: outroBg.startsWith('http') ? 'var(--accent)' : 'var(--ink)' }}>
+                            {outroUploading ? '업로드 중…' : outroBg.startsWith('http') ? '📷 내 이미지 ✓' : '📷 이미지 업로드'}
+                            <input type="file" accept="image/jpeg,image/png,image/webp" style={{ display: 'none' }}
+                              onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadOutroBg(f); e.target.value = ''; }} />
+                          </label>
+                        </div>
+                        {outroBg.startsWith('http') ? (
+                          <img src={outroBg} alt="아웃트로 배경" style={{ marginTop: 8, height: 44, borderRadius: 8, border: '1px solid var(--line)' }} />
+                        ) : null}
+                        <p style={{ fontSize: 11, color: 'var(--faint)', margin: '8px 0 0' }}>이미지 배경 위에는 가독성용 색 스크림이 얹혀요. '생성 아트'는 영상 배경과 같은 그림을 써요.</p>
+                      </div>
+                    ) : (
+                      <p style={{ fontSize: 11, color: 'var(--faint)', margin: '6px 0 0 23px' }}>끄면 브랜드 화면 없이 마지막 씬에서 바로 끝나요.</p>
+                    )}
                   </div>
                 )}
               </div>

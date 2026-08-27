@@ -1126,11 +1126,12 @@ const TitleChip: React.FC<{ text: string; theme: Theme }> = ({ text, theme }) =>
  * 로고 아웃트로. 나레이션이 끝난 뒤 훅 꺼지지 않고 채널 워드마크로 닫는다 —
  * 마지막 화면은 시청자가 채널명을 기억하는 유일한 순간이다.
  */
-const Outro: React.FC<{ brand: string; logo?: string; tagline?: string; theme: Theme }> = ({
+const Outro: React.FC<{ brand: string; logo?: string; tagline?: string; theme: Theme; bg?: string }> = ({
   brand,
   logo,
   tagline,
   theme,
+  bg,
 }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
@@ -1155,6 +1156,16 @@ const Outro: React.FC<{ brand: string; logo?: string; tagline?: string; theme: T
         opacity: bgIn,
       }}
     >
+      {bg ? (
+        // 지정 배경 위에 브랜드 텍스트가 얹히므로 테마색 스크림으로 가독성을 확보한다.
+        <AbsoluteFill>
+          <Img
+            src={staticFile(bg)}
+            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+          />
+          <AbsoluteFill style={{ backgroundColor: `${theme.bg}B8` }} />
+        </AbsoluteFill>
+      ) : null}
       <AbsoluteFill
         style={{
           background: `radial-gradient(80% 55% at 50% 45%, ${theme.accent}26 0%, transparent 65%)`,
@@ -1309,10 +1320,13 @@ export const InfoShort: React.FC<ShortProps> = ({
   brand,
   brandLogo,
   brandTagline,
+  showWatermark = true,
+  outroTagline = true,
+  outroBg,
 }) => {
   // Corner watermark with the tagline — stays through body scenes, builds the
   // channel's positioning line by repetition.
-  const taglineMark = brandTagline ? (
+  const taglineMark = brandTagline && showWatermark ? (
     <AbsoluteFill style={{ pointerEvents: 'none' }}>
       <div
         style={{
@@ -1480,12 +1494,18 @@ export const InfoShort: React.FC<ShortProps> = ({
         <Hook text={hook} brand={brand} logo={brandLogo} theme={theme} />
       </Sequence>
 
-      {brandTagline ? (
+      {taglineMark ? (
         <Sequence from={0} durationInFrames={outroStart}>{taglineMark}</Sequence>
       ) : null}
       {brand ? (
         <Sequence from={outroStart} durationInFrames={scenesEnd - outroStart + OUTRO_FRAMES}>
-          <Outro brand={brand} logo={brandLogo} tagline={brandTagline} theme={theme} />
+          <Outro
+            brand={brand}
+            logo={brandLogo}
+            tagline={outroTagline ? brandTagline : undefined}
+            theme={theme}
+            bg={outroBg}
+          />
         </Sequence>
       ) : null}
     </AbsoluteFill>
