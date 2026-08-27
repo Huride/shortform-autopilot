@@ -319,7 +319,11 @@ export default function Create() {
                     ))}
                   </div>
                 )}
-                <p style={{ fontSize: 11, color: 'var(--faint)', margin: '10px 0 0' }}>'채널 아트' 배경을 쓰는 씬에 적용돼요 — 주제에 맞춰 이 스타일로 새로 그립니다.</p>
+                {scenes.every((s) => s.bg) ? (
+                  <p style={{ fontSize: 11, color: 'var(--warn)', margin: '10px 0 0' }}>⚠ 지금은 모든 씬이 실사 배경이라 생성 아트가 쓰이지 않아요. 씬 배경을 '채널 아트'로 바꾸면 적용됩니다.</p>
+                ) : (
+                  <p style={{ fontSize: 11, color: 'var(--faint)', margin: '10px 0 0' }}>'채널 아트' 배경인 씬 {scenes.filter((s) => !s.bg).length}개에 적용 — 렌더 때 주제에 맞춰 이 스타일로 새로 그립니다.</p>
+                )}
               </div>
               <div className="card" style={{ padding: '16px 18px', marginBottom: 14 }}>
                 <div className="sum-row"><span>씬</span><b>{scenes.length}개</b></div>

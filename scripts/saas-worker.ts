@@ -185,10 +185,13 @@ async function processOne(): Promise<boolean> {
     };
     const script = toScript(job.script, channel.signoff);
 
-    // 채널 아트 배경 — 잡당 1장 생성 (실패해도 테마 배경으로 진행)
+    // 채널 아트 배경 — '채널 아트' 를 쓰는 씬이 있을 때만 잡당 1장 생성
+    // (모든 씬이 실사면 어차피 가려진다 — 생성 비용을 쓰지 않는다)
+    const needsArt = script.scenes.some((s) => !s.bg);
     let backgroundImage: string | undefined;
+    if (!needsArt) log.info('  모든 씬이 실사 배경 — 채널 아트 생성 건너뜀');
     try {
-      backgroundImage = await generateBackground(job.id, {
+      if (needsArt) backgroundImage = await generateBackground(job.id, {
         headline: script.title, summary: job.topic, angle: channel.stance.slice(0, 200),
         keywords: [], facts: [], caution: [], sources: [],
       }, channel);
