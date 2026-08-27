@@ -95,6 +95,107 @@ async function searchNews(topic: string): Promise<Article[]> {
   })).filter((a: Article) => a.title);
 }
 
+/**
+ * 구글 뉴스 RSS 의 기사 링크는 news.google.com 리다이렉트 URL 이다.
+ * ① 구형 id 는 base64 안에 원본 URL 이 그대로 들어 있고,
+ * ② 신형 id 는 기사 페이지의 서명(data-n-a-sg/ts)으로 batchexecute 를 호출해 푼다.
+ * 둘 다 실패하면 null — RSS 요약만으로 진행한다 (비공식 엔드포인트라 언제든 깨질 수 있음).
+ */
+function decodeGoogleNewsUrl(link: string): string | null {
+  const m = link.match(/articles\/([^?/]+)/);
+  if (!m) return null;
+  try {
+    const raw = Buffer.from(m[1]!.replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString('latin1');
+    const url = raw.match(/https?:\/\/[^\x00-\x1f"\\ ]+/)?.[0];
+    return url ?? null;
+  } catch { return null; }
+}
+
+async function resolveGoogleNewsUrl(link: string): Promise<string | null> {
+  if (!link.includes('news.google.com')) return link;
+  const direct = decodeGoogleNewsUrl(link);
+  if (direct) return direct;
+  try {
+    const html = await (await fetch(link, {
+      headers: { 'User-Agent': 'Mozilla/5.0' }, signal: AbortSignal.timeout(8000),
+    })).text();
+    const sg = html.match(/data-n-a-sg="([^"]+)"/)?.[1];
+    const ts = html.match(/data-n-a-ts="([^"]+)"/)?.[1];
+    const id = html.match(/data-n-a-id="([^"]+)"/)?.[1] ?? link.match(/articles\/([^?/]+)/)?.[1];
+    if (!sg || !ts || !id) return null;
+    const inner = JSON.stringify(['garturlreq',
+      [['X', 'X', ['X', 'X'], null, null, 1, 1, 'US:en', null, 1, null, null, null, null, null, 0, 1],
+        'X', 'X', 1, [1, 1, 1], 1, 1, null, 0, 0, null, 0],
+      id, Number(ts), sg]);
+    const res = await fetch('https://news.google.com/_/DotsSplashUi/data/batchexecute', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8', 'User-Agent': 'Mozilla/5.0' },
+      body: 'f.req=' + encodeURIComponent(JSON.stringify([[['Fbv4je', inner, null, 'generic']]])),
+      signal: AbortSignal.timeout(8000),
+    });
+    const txt = await res.text();
+    // 응답은 JSON-in-JSON — '=' 가 = 로 이스케이프돼 있어 풀어줘야 한다.
+    const raw = txt.match(/garturlres\\",\\"((?:[^"\\]|\\.)*)\\"/)?.[1];
+    if (!raw) return null;
+    const url = raw
+      .replace(/\\u([0-9a-fA-F]{4})/g, (_, h) => String.fromCharCode(parseInt(h, 16)))
+      .replace(/\\\//g, '/');
+    return /^https?:\/\//.test(url) ? url : null;
+  } catch { return null; }
+}
+
+/** HTML → 본문 텍스트. 의존성 없이 본문 후보 블록 중 가장 긴 것 + 짧은 줄(내비 찌꺼기) 제거. */
+function extractText(html: string): string {
+  // 첫 <article> 이 사이드바인 사이트가 있다 — 후보를 모두 모아 제일 긴 블록을 쓴다.
+  const candidates = [
+    ...[...html.matchAll(/<article[\s\S]*?<\/article>/gi)].map((m) => m[0]),
+    html.match(/itemprop="articleBody"[\s\S]*?(?=<\/article>|<footer|<aside)/i)?.[0],
+    html.match(/id="article-view-content-div"[\s\S]*?(?=<\/article>|<footer|<aside)/i)?.[0],
+  ].filter((s): s is string => Boolean(s && s.length > 400));
+  const scope = candidates.length
+    ? candidates.reduce((a, b) => (b.length > a.length ? b : a))
+    : html;
+  return scope
+    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<\/(p|div|h\d|li|section)>|<br[^>]*>/gi, '\n')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&quot;/g, '"')
+    .replace(/&#39;|&apos;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+    .split('\n')
+    .map((l) => l.replace(/\s+/g, ' ').trim())
+    .filter((l) => l.length > 30)
+    .join('\n');
+}
+
+/** 기사·블로그 페이지 본문 수집. 실패는 조용히 null — 요약/스킵으로 폴백한다. */
+async function fetchPage(url: string): Promise<{ title?: string; text: string } | null> {
+  try {
+    const res = await fetch(url, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; shortform-autopilot/1.0)', 'Accept-Language': 'ko' },
+      redirect: 'follow',
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!res.ok) return null;
+    const ct = res.headers.get('content-type') ?? '';
+    if (!ct.includes('html') && !ct.includes('text')) return null;
+    // EUC-KR 언론사가 아직 많다 — 헤더/meta 의 charset 으로 다시 디코드한다.
+    const buf = Buffer.from(await res.arrayBuffer());
+    let html = buf.toString('utf8');
+    const cs = (ct.match(/charset=([\w-]+)/i)?.[1]
+      ?? html.match(/<meta[^>]+charset=["']?([\w-]+)/i)?.[1])?.toLowerCase();
+    if (cs && cs !== 'utf-8' && cs !== 'utf8') {
+      try { html = new TextDecoder(cs).decode(buf); } catch { /* 미지원 charset — utf8 유지 */ }
+    }
+    const title = html.match(/<title[^>]*>([^<]{2,200})/i)?.[1]?.trim();
+    const text = extractText(html);
+    if (text.length <= 200) return null;
+    // 디코드가 깨진 텍스트(치환문자 다수)는 근거로 못 쓴다
+    if ((text.match(/�/g)?.length ?? 0) > text.length * 0.02) return null;
+    return { title, text };
+  } catch { return null; }
+}
+
 /** 사용자 채널 브랜딩 — channels 테이블 첫 행의 config {name, signoff, tagline}. */
 async function loadBranding(userId: string): Promise<{ name?: string; signoff?: string; tagline?: string }> {
   const r = await rest(`channels?user_id=eq.${userId}&archived=eq.false&order=created_at.asc&limit=1&select=config`);
@@ -134,28 +235,58 @@ async function generateOne(): Promise<boolean> {
     // 실시간 사실 수집 → 팩트락. 기사가 없으면(개념·노하우형 주제) 일반 지식 모드.
     let brief;
     try {
+      // 운영자가 넣은 참고자료 URL — 본문을 그대로 근거 자료에 합류시킨다.
+      const refUrls: string[] = Array.isArray(job.script?.refUrls)
+        ? job.script.refUrls.filter((u: unknown) => typeof u === 'string' && /^https?:\/\//.test(u)).slice(0, 5)
+        : [];
+      const refArticles: Article[] = [];
+      for (const u of refUrls) {
+        const page = await fetchPage(u);
+        if (page) {
+          refArticles.push({
+            title: page.title ?? new URL(u).hostname,
+            summary: page.text.slice(0, 2500),
+            source: `운영자 제공(${new URL(u).hostname})`,
+            lean: 'center', link: u, publishedAt: '',
+          });
+        } else log.warn(`  참고자료 추출 실패: ${u}`);
+      }
+      if (refUrls.length) log.info(`  참고자료 ${refArticles.length}/${refUrls.length}건 반영`);
+
       // 문장형 주제("~에 대해 분석하고 …하는 영상")는 검색이 안 잡힌다 —
       // 실패 시 지시어를 걷어낸 핵심 키워드로 재검색.
       let articles = await searchNews(job.topic);
       if (articles.length < 2) {
         const keywords = job.topic
           .replace(/(에 대해|대해서|관련|여부|분석|정리|팩트\s*체크|사실\s*전달|하는|하고|해주는|영상|후|및)/g, ' ')
+          .replace(/[,·]+/g, ' ')
           .replace(/\s+/g, ' ').trim().split(' ').slice(0, 5).join(' ');
         if (keywords && keywords !== job.topic) {
           log.info(`  키워드 재검색: "${keywords}"`);
           articles = await searchNews(keywords);
         }
       }
-      if (articles.length >= 2) {
-        log.info(`  기사 ${articles.length}건 수집 — 팩트 추출`);
+      // RSS 는 제목·한두 문장뿐 — 기사 본문을 따라가 팩트 추출의 근거를 두텁게 한다.
+      let bodied = 0;
+      for (const a of articles) {
+        const real = await resolveGoogleNewsUrl(a.link);
+        if (!real) continue;
+        const page = await fetchPage(real);
+        if (page?.text) { a.summary = page.text.slice(0, 2000); bodied++; }
+      }
+      if (articles.length) log.info(`  기사 본문 확보 ${bodied}/${articles.length}건`);
+
+      const all = [...refArticles, ...articles];
+      if (all.length >= 2 || refArticles.length >= 1) {
+        log.info(`  자료 ${all.length}건 — 팩트 추출`);
         brief = await buildBrief({
           headline: job.topic,
-          summary: articles.slice(0, 3).map((a) => a.title).join(' / '),
-          keywords: [], articleIndices: articles.map((_, i) => i),
-          coverage: articles.length, leanCoverage: '', shortformFit: 0,
+          summary: all.slice(0, 3).map((a) => a.title).join(' / '),
+          keywords: [], articleIndices: all.map((_, i) => i),
+          coverage: all.length, leanCoverage: '', shortformFit: 0,
           channelFit: 0, freshness: 0, duplicateRisk: 0, totalScore: 0,
           reason: 'user topic',
-        }, articles, channel);
+        }, all, channel);
       } else {
         log.info('  관련 기사 없음 — 일반 지식 모드');
       }
@@ -167,7 +298,7 @@ async function generateOne(): Promise<boolean> {
     const generated = withDisclosure(await generateScript({ topic: job.topic, channel, brief, direction }), channel);
     // 재생성이어도 에디터에서 고른 설정(스타일·목소리·색상·아웃트로 등)은 유지한다.
     const kept: Record<string, unknown> = {};
-    for (const k of ['artStyle', 'voice', 'voiceProvider', 'bgm', 'colors', 'outro', 'watermark'] as const) {
+    for (const k of ['artStyle', 'voice', 'voiceProvider', 'bgm', 'colors', 'outro', 'watermark', 'refUrls'] as const) {
       if (job.script?.[k] !== undefined) kept[k] = job.script[k];
     }
     const script = {

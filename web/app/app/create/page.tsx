@@ -113,6 +113,7 @@ export default function Create() {
   const [savedMsg, setSavedMsg] = useState(false);
   const [regenOpen, setRegenOpen] = useState(false);
   const [regenNote, setRegenNote] = useState('');
+  const [refUrls, setRefUrls] = useState<string[]>(['']);
 
   useEffect(() => {
     const sb = getSupabase(); if (!sb) return;
@@ -233,8 +234,9 @@ export default function Create() {
     if (!session) { location.href = '/login'; return; }
     setGenError(''); setTopic(tpc); setPhase('generating');
     setColors(null); setOutroOn(true); setOutroTagline(true); setOutroBg(''); setWatermark(true);
+    const refs = refUrls.map((u) => u.trim()).filter((u) => /^https?:\/\//.test(u));
     const { data, error } = await sb.from('jobs')
-      .insert({ user_id: session.user.id, topic: tpc, status: 'pending', script: { template } })
+      .insert({ user_id: session.user.id, topic: tpc, status: 'pending', script: { template, ...(refs.length ? { refUrls: refs } : {}) } })
       .select('id').single();
     if (error || !data) { setGenError('접수 실패: ' + error?.message); setPhase('topic'); return; }
     setJobId(data.id);
@@ -351,6 +353,20 @@ export default function Create() {
                   <div className="card topic-box">
                     <label>무엇에 대한 영상인가요?</label>
                     <textarea placeholder="주제를 한 줄로 적어주세요 — 예: 아이폰 신모델 가격, 오를까?" value={topic} onChange={(e) => setTopic(e.target.value)} />
+                    <label style={{ marginTop: 16 }}>참고자료 링크 (선택)</label>
+                    {refUrls.map((u, i) => (
+                      <div key={i} style={{ display: 'flex', gap: 6, marginBottom: 6 }}>
+                        <input value={u} placeholder="https:// 기사·블로그 주소" inputMode="url"
+                          onChange={(e) => setRefUrls((p) => p.map((v, j) => (j === i ? e.target.value : v)))} style={{ flex: 1 }} />
+                        {refUrls.length > 1 ? (
+                          <button type="button" className="btn sm" onClick={() => setRefUrls((p) => p.filter((_, j) => j !== i))} title="칸 삭제">✕</button>
+                        ) : null}
+                      </div>
+                    ))}
+                    {refUrls.length < 5 ? (
+                      <button type="button" className="btn sm" onClick={() => setRefUrls((p) => [...p, ''])}>＋ 링크 추가</button>
+                    ) : null}
+                    <p style={{ fontSize: 11.5, color: 'var(--faint)', margin: '6px 0 0' }}>넣어주신 페이지의 본문을 읽고 대본의 사실 근거로 사용해요 (최대 5개). 뉴스가 없는 노하우·제도 주제일수록 효과가 커요.</p>
                     <label style={{ marginTop: 16 }}>템플릿 — 왼쪽은 실제 렌더, 오른쪽은 자막 강조 스타일</label>
                     <div className="tplpick">
                       {TEMPLATES.map((t) => (
