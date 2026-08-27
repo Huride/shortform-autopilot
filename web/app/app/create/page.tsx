@@ -88,6 +88,27 @@ export default function Create() {
   const rawScript = useRef<Record<string, unknown>>({});
   const total = useMemo(() => scenes.reduce((a, s) => a + estimate(s.narration), 0), [scenes]);
 
+  // 기존 잡 열기 (?job=<id>) — 렌더 후에도 대본을 다시 불러 수정·재렌더
+  useEffect(() => {
+    const id = new URLSearchParams(location.search).get('job');
+    if (!id) return;
+    const sb = getSupabase(); if (!sb) return;
+    sb.from('jobs').select('id, topic, status, script').eq('id', id).single().then(({ data: j }) => {
+      if (!j?.script?.scenes) return;
+      setJobId(j.id); setTopic(j.topic);
+      rawScript.current = j.script;
+      setFactInfo(j.script.factCount ? { facts: j.script.factCount, sources: (j.script.newsSources ?? []).length } : null);
+      setTitle(j.script.title ?? j.topic);
+      setHook(j.script.hook ?? '');
+      setArtStyle(j.script.artStyle ?? '');
+      setScenes((j.script.scenes as any[]).map((s) => ({
+        narration: s.narration ?? '', caption: s.caption ?? '', emphasis: s.emphasis ?? '',
+        visualLabel: KIND2LABEL[s.visual?.kind] ?? '키워드 스탬프', visual: s.visual, bg: s.bg,
+      })));
+      setPhase('edit');
+    });
+  }, []);
+
   // 생성 폴링 — pending → scripted 가 되면 대본을 에디터로 싣는다
   useEffect(() => {
     if (phase !== 'generating' || !jobId) return;
@@ -143,7 +164,7 @@ export default function Create() {
       };
     });
     const script = { ...rawScript.current, template, title: title || topic, hook, scenes: outScenes, artStyle: artStyle || undefined, approved: true };
-    const { error } = await sb.from('jobs').update({ script }).eq('id', jobId);
+    const { error } = await sb.from('jobs').update({ script, status: 'scripted', error: null, video_url: null }).eq('id', jobId);
     if (error) { alert('저장 실패: ' + error.message); setBusy(false); return; }
     await sb.from('profiles').update({ credits: (prof!.credits as number) - 10 }).eq('id', session.user.id);
     location.href = '/app/library?tab=1';

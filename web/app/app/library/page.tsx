@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import Vid from '@/components/Vid';
 import { getSupabase } from '@/lib/supabase';
 
-type Job = { id: string; topic: string; status: string; video_url: string | null; error: string | null; created_at: string; approved?: boolean | null };
+type Job = { id: string; topic: string; status: string; video_url: string | null; error: string | null; created_at: string; updated_at?: string; approved?: boolean | null };
 
 const SAMPLES = [
   { k: 'brief', title: '[샘플] 오늘 꼭 알아야 할 3가지', d: '쓰리씽' },
@@ -23,7 +23,7 @@ export default function Library() {
     if (!sb) return;
     let stop = false;
     const load = async () => {
-      const { data } = await sb.from('jobs').select('id, topic, status, video_url, error, created_at, approved:script->approved').order('created_at', { ascending: false });
+      const { data } = await sb.from('jobs').select('id, topic, status, video_url, error, created_at, updated_at, approved:script->approved').order('created_at', { ascending: false });
       if (!stop && data) setJobs(data as Job[]);
     };
     load();
@@ -55,11 +55,14 @@ export default function Library() {
               {done.map((j) => (
                 <div className="vid-card" key={j.id}>
                   <div className="thumb" style={{ padding: 0, background: '#0A101F' }}>
-                    <Vid src={j.video_url!} poster="" />
+                    <Vid src={`${j.video_url!}?v=${encodeURIComponent(j.updated_at ?? '')}`} poster="" />
                   </div>
                   <div className="vid-meta"><b>{j.topic}</b>
                     <div className="row"><span className="d">{new Date(j.created_at).toLocaleDateString('ko-KR')}</span>
-                      <a className="btn sm" href={j.video_url!} download>⬇ 저장</a>
+                      <span style={{ display: 'flex', gap: 6 }}>
+                        <a className="btn sm" href={`/app/create?job=${j.id}`}>✏ 대본</a>
+                        <a className="btn sm" href={j.video_url!} download>⬇</a>
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -79,7 +82,10 @@ export default function Library() {
             {failed.map((j) => (
               <div className="job-row" key={j.id}>
                 <div className="title">{j.topic}<small style={{ color: 'var(--warn)' }}>{j.error?.slice(0, 80)}</small></div>
-                <span className="badge warn" style={{ marginLeft: 'auto' }}>실패</span>
+                <span style={{ marginLeft: 'auto', display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <a className="btn sm" href={`/app/create?job=${j.id}`}>✏ 대본 수정 후 재시도</a>
+                  <span className="badge warn">실패</span>
+                </span>
               </div>
             ))}
           </div>
