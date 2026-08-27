@@ -36,7 +36,7 @@ function decrypt(b64: string): string {
 type EditorScene = { narration: string; caption: string; emphasis?: string; visualLabel?: string; bg?: string; visual?: Scene['visual'] };
 
 /** 에디터의 느슨한 씬을 렌더러 Script 로 변환. 값이 필요한 카드는 안전한 폴백. */
-function toScript(raw: any, signoff?: string): Script {
+function toScript(raw: any, signoffs: (string | undefined)[] = []): Script {
   const scenes: Scene[] = (raw.scenes as EditorScene[]).filter((s) => s.narration?.trim()).map((s) => {
     const emphasis = s.emphasis?.trim() && s.caption.includes(s.emphasis.trim()) ? s.emphasis.trim() : undefined;
     let visual: Scene['visual'];
@@ -44,17 +44,18 @@ function toScript(raw: any, signoff?: string): Script {
     if (s.visual && typeof s.visual === 'object' && 'kind' in s.visual) {
       // LLM 이 생성한 원본 비주얼 — 에디터에서 종류를 안 바꿨으면 그대로 쓴다.
       visual = s.visual;
-      return { narration: s.narration.trim(), caption: s.caption?.trim() || s.narration.slice(0, 20), emphasis, visual, ...(s.bg ? { bg: s.bg } : {}) };
+      return { narration: s.narration.trim(), caption: s.caption?.trim() || s.narration.slice(0, 20), emphasis, visual, ...(s.bg && s.bg !== 'gen' ? { bg: s.bg } : {}) };
     }
     switch (s.visualLabel) {
       case '카운트업 통계': visual = { kind: 'stat', value: em || s.caption, label: em ? s.caption : '' }; break;
       case '인용 패널': visual = { kind: 'quote', text: s.narration.slice(0, 60), attribution: '' }; break;
       default: visual = { kind: 'keyword', text: em || s.caption };
     }
-    return { narration: s.narration.trim(), caption: s.caption?.trim() || s.narration.slice(0, 20), emphasis, visual, ...(s.bg ? { bg: s.bg } : {}) };
+    return { narration: s.narration.trim(), caption: s.caption?.trim() || s.narration.slice(0, 20), emphasis, visual, ...(s.bg && s.bg !== 'gen' ? { bg: s.bg } : {}) };
   });
   const last = scenes[scenes.length - 1];
-  if (signoff && last && last.narration.includes(signoff.slice(0, 6))) {
+  const hit = signoffs.some((s) => s && last?.narration.includes(s.slice(0, 6)));
+  if (hit && last) {
     scenes[scenes.length - 1] = { ...last, outro: true, visual: undefined };
   }
   return { title: raw.title, hook: raw.hook || raw.title, scenes, description: raw.description ?? '', hashtags: raw.hashtags ?? [] };
@@ -262,7 +263,25 @@ async function processOne(): Promise<boolean> {
     };
     const pickedBgm = job.script?.bgm as string | undefined;
     const bgmSrc = pickedBgm === 'none' ? undefined : pickedBgm || channel.bgm;
-    const script = toScript(job.script, channel.signoff);
+    const script = toScript(job.script, [channel.signoff, baseChannel.signoff]);
+
+    // 씬 전용 생성 — bg='gen' 씬은 그 씬의 내용(자막·나레이션)을 소재로
+    // 개별 이미지를 그린다. 씬마다 다른 그림이 필요할 때 사용 (씬당 이미지 1장).
+    for (let i = 0; i < script.scenes.length; i++) {
+      if ((job.script.scenes[i] as any)?.bg === 'gen') {
+        const sc = script.scenes[i]!;
+        log.info(`  씬 ${i + 1} 전용 이미지 생성`);
+        try {
+          const p = await generateBackground(`${job.id}-s${i}`, {
+            headline: sc.caption, summary: sc.narration, angle: channel.stance.slice(0, 200),
+            keywords: [], facts: [], caution: [], sources: [],
+          }, channel);
+          script.scenes[i] = { ...sc, bg: p };
+        } catch (e) {
+          log.warn(`  씬 ${i + 1} 전용 생성 실패 — 공용 아트로 폴백: ${e instanceof Error ? e.message : e}`);
+        }
+      }
+    }
 
     // 채널 아트 배경 — '채널 아트' 를 쓰는 씬이 있을 때만 잡당 1장 생성
     // (모든 씬이 실사면 어차피 가려진다 — 생성 비용을 쓰지 않는다)

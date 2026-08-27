@@ -82,6 +82,9 @@ export default function Create() {
   const [bgm, setBgm] = useState('');
   const [voiceOpen, setVoiceOpen] = useState(false);
   const [elVoices, setElVoices] = useState<{ id: string; name: string; preview: string | null }[]>([]);
+  const [brand, setBrand] = useState({ name: '', signoff: '', tagline: '' });
+  const [brandRow, setBrandRow] = useState<string | null>(null);
+  const [brandOpen, setBrandOpen] = useState(false);
 
   useEffect(() => {
     const sb = getSupabase(); if (!sb) return;
@@ -90,6 +93,10 @@ export default function Create() {
       fetch('/api/elvoices', { headers: { Authorization: `Bearer ${session.access_token}` } })
         .then((r) => r.json()).then((j) => { if (j.ok) setElVoices(j.voices); }).catch(() => {});
     });
+    sb.from('channels').select('id, config').eq('archived', false).order('created_at').limit(1).maybeSingle()
+      .then(({ data }) => {
+        if (data) { setBrandRow(data.id); setBrand({ name: data.config?.name ?? '', signoff: data.config?.signoff ?? '', tagline: data.config?.tagline ?? '' }); }
+      });
   }, []);
   const [bgQuery, setBgQuery] = useState('');
   const [bgResults, setBgResults] = useState<{ url: string; thumb: string; title: string; license: string }[]>([]);
@@ -192,6 +199,13 @@ export default function Create() {
     const { data: { session } } = await sb.auth.getSession();
     if (!session) { location.href = '/login'; return; }
     setBusy(true);
+    // 브랜딩 저장 (에디터에서 수정했을 수 있음)
+    const bconfig = { name: brand.name.trim(), signoff: brand.signoff.trim(), tagline: brand.tagline.trim() };
+    if (brandRow) await sb.from('channels').update({ config: bconfig }).eq('id', brandRow);
+    else if (bconfig.name || bconfig.signoff || bconfig.tagline) {
+      const { data: nb } = await sb.from('channels').insert({ user_id: session.user.id, config: bconfig }).select('id').single();
+      if (nb) setBrandRow(nb.id);
+    }
     const { data: prof } = await sb.from('profiles').select('credits').eq('id', session.user.id).single();
     if ((prof?.credits ?? 0) < 10) { alert('크레딧이 부족합니다.'); setBusy(false); return; }
     const outScenes = scenes.filter((s) => s.narration.trim()).map((s) => {
@@ -322,7 +336,7 @@ export default function Create() {
                       <div><label>배경</label>
                         <button type="button" className="pickbtn" onClick={() => setBgOpen(bgOpen === i ? null : i)}>
                           <img src={!s.bg ? (artStyle ? `/ui/style-${artStyle}.jpg` : `/ui/bgart-${template}.jpg`) : s.bg.startsWith('http') ? s.bg.replace('/1600px-', '/480px-') : `/ui/bgart-${template}.jpg`} alt="" style={{ height: 30 }} />
-                          {!s.bg ? `생성 — ${(ART_STYLES.find((a) => a.id === artStyle) ?? ART_STYLES[0]).name}` : s.bg.includes('/assets/') ? '내 이미지' : s.bg.startsWith('http') ? '실사 (검색)' : '실사'}
+                          {!s.bg ? `생성 — ${(ART_STYLES.find((a) => a.id === artStyle) ?? ART_STYLES[0]).name}` : s.bg === 'gen' ? '✨ 씬 전용 생성' : s.bg.includes('/assets/') ? '내 이미지' : s.bg.startsWith('http') ? '실사 (검색)' : '실사'}
                           <span style={{ marginLeft: 'auto', color: 'var(--faint)' }}>▾</span>
                         </button>
                       </div>
@@ -338,6 +352,11 @@ export default function Create() {
                           <b>{a.name}</b><small>{a.desc}</small>
                         </button>
                       ))}
+                      <button type="button" className={`pickitem${s.bg === 'gen' ? ' sel' : ''}`}
+                        onClick={() => { set(i, { bg: 'gen' }); setBgOpen(null); }}>
+                        <span style={{ aspectRatio: '9/16', display: 'grid', placeItems: 'center', background: 'var(--accent-soft)', color: 'var(--accent)', borderRadius: 7, marginBottom: 6, fontSize: 24 }}>✨</span>
+                        <b>이 씬 전용 생성</b><small>이 씬의 내용으로 별도 이미지를 새로 그려요 (+이미지 1장)</small>
+                      </button>
                       <div style={{ gridColumn: '1 / -1', fontSize: 11.5, color: 'var(--sub)', fontWeight: 700, marginTop: 4 }}>📷 실사 · 내 이미지</div>
                       <label className="pickitem" style={{ cursor: 'pointer' }}>
                         <span style={{ aspectRatio: '9/16', display: 'grid', placeItems: 'center', background: 'var(--card2)', borderRadius: 7, marginBottom: 6, fontSize: 26 }}>
@@ -405,6 +424,23 @@ export default function Create() {
                   <p style={{ fontSize: 11, color: 'var(--warn)', margin: '10px 0 0' }}>⚠ 지금은 모든 씬이 실사 배경이라 생성 아트가 쓰이지 않아요. 씬 배경을 '채널 아트'로 바꾸면 적용됩니다.</p>
                 ) : (
                   <p style={{ fontSize: 11, color: 'var(--faint)', margin: '10px 0 0' }}>'채널 아트' 배경인 씬 {scenes.filter((s) => !s.bg).length}개에 적용 — 렌더 때 주제에 맞춰 이 스타일로 새로 그립니다.</p>
+                )}
+              </div>
+              <div className="card" style={{ padding: '14px 16px', marginBottom: 14 }}>
+                <button type="button" className="pickbtn" onClick={() => setBrandOpen(!brandOpen)}>
+                  🏷 브랜딩 — {brand.name || '템플릿 기본'}
+                  <span style={{ marginLeft: 'auto', color: 'var(--faint)' }}>▾</span>
+                </button>
+                {brandOpen && (
+                  <div style={{ marginTop: 10 }}>
+                    <div className="field" style={{ marginBottom: 10 }}><label>채널 이름 (아웃트로)</label>
+                      <input value={brand.name} onChange={(e) => setBrand({ ...brand, name: e.target.value })} placeholder="템플릿 기본" /></div>
+                    <div className="field" style={{ marginBottom: 10 }}><label>시그니처 멘트 (마지막 문장)</label>
+                      <input value={brand.signoff} onChange={(e) => setBrand({ ...brand, signoff: e.target.value })} placeholder="템플릿 기본" /></div>
+                    <div className="field" style={{ marginBottom: 6 }}><label>태그라인 (워터마크)</label>
+                      <input value={brand.tagline} onChange={(e) => setBrand({ ...brand, tagline: e.target.value })} placeholder="템플릿 기본" /></div>
+                    <p style={{ fontSize: 11, color: 'var(--faint)', margin: 0 }}>렌더 시 저장·적용돼요. 시그니처를 바꿨다면 마지막 씬의 문장도 같이 고쳐주세요 — 문장이 달라도 아웃트로는 정상 표시됩니다.</p>
+                  </div>
                 )}
               </div>
               <div className="card" style={{ padding: '14px 16px', marginBottom: 14 }}>
