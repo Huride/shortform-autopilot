@@ -34,6 +34,8 @@ export default function Library() {
   const done = jobs.filter((j) => j.status === 'rendered' && j.video_url);
   const doing = jobs.filter((j) => j.status === 'pending' || j.status === 'voiced' || (j.status === 'scripted' && j.approved === true));
   const failed = jobs.filter((j) => j.status === 'failed');
+  // 렌더 없이 저장만 해둔 대본 초안 (완성 영상이 이미 있는 잡은 완성 탭에 있으니 제외)
+  const drafts = jobs.filter((j) => j.status === 'scripted' && j.approved !== true && !j.video_url);
 
   return (
     <section className="screen active" style={{ display: 'flex' }}>
@@ -44,7 +46,7 @@ export default function Library() {
         <div className="tabs">
           {['완성 영상', '진행 중', '샘플'].map((t, i) => (
             <button key={t} className={`tab${tab === i ? ' on' : ''}`} onClick={() => setTab(i)}>{t}
-              <span className="cnt">{[done.length, doing.length + failed.length, 5][i]}</span>
+              <span className="cnt">{[done.length, doing.length + failed.length + drafts.length, 5][i]}</span>
             </button>
           ))}
         </div>
@@ -72,7 +74,16 @@ export default function Library() {
 
         {tab === 1 && (
           <div className="card">
-            {doing.length + failed.length === 0 && <div style={{ padding: 40, textAlign: 'center', color: 'var(--faint)' }}>진행 중인 렌더가 없습니다</div>}
+            {doing.length + failed.length + drafts.length === 0 && <div style={{ padding: 40, textAlign: 'center', color: 'var(--faint)' }}>진행 중인 렌더가 없습니다</div>}
+            {drafts.map((j) => (
+              <div className="job-row" key={j.id}>
+                <div className="title">{j.topic}<small>{new Date(j.created_at).toLocaleDateString('ko-KR')} 저장</small></div>
+                <span style={{ marginLeft: 'auto', display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <a className="btn sm" href={`/app/create?job=${j.id}`}>✏ 이어서 편집</a>
+                  <span className="badge dim">대본 초안</span>
+                </span>
+              </div>
+            ))}
             {doing.map((j) => (
               <div className="job-row" key={j.id}>
                 <div className="title">{j.topic}<small>{new Date(j.created_at).toLocaleTimeString('ko-KR')}</small></div>

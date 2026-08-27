@@ -110,6 +110,9 @@ export default function Create() {
   const [outroBg, setOutroBg] = useState(''); // '' = 테마 기본, 'art' = 생성 아트, url = 업로드 이미지
   const [outroUploading, setOutroUploading] = useState(false);
   const [watermark, setWatermark] = useState(true);
+  const [savedMsg, setSavedMsg] = useState(false);
+  const [regenOpen, setRegenOpen] = useState(false);
+  const [regenNote, setRegenNote] = useState('');
 
   useEffect(() => {
     const sb = getSupabase(); if (!sb) return;
@@ -237,20 +240,8 @@ export default function Create() {
     setJobId(data.id);
   }
 
-  async function approveRender() {
-    const sb = getSupabase(); if (!sb || !jobId) return;
-    const { data: { session } } = await sb.auth.getSession();
-    if (!session) { location.href = '/login'; return; }
-    setBusy(true);
-    // 브랜딩 저장 (에디터에서 수정했을 수 있음)
-    const bconfig = { name: brand.name.trim(), signoff: brand.signoff.trim(), tagline: brand.tagline.trim() };
-    if (brandRow) await sb.from('channels').update({ config: bconfig }).eq('id', brandRow);
-    else if (bconfig.name || bconfig.signoff || bconfig.tagline) {
-      const { data: nb } = await sb.from('channels').insert({ user_id: session.user.id, config: bconfig }).select('id').single();
-      if (nb) setBrandRow(nb.id);
-    }
-    const { data: prof } = await sb.from('profiles').select('credits').eq('id', session.user.id).single();
-    if ((prof?.credits ?? 0) < 10) { alert('크레딧이 부족합니다.'); setBusy(false); return; }
+  // 에디터 상태 → 잡 script JSON. 저장·렌더·재생성이 같은 조립을 쓴다.
+  function buildScript() {
     const outScenes = scenes.filter((s) => s.narration.trim()).map((s) => {
       const keepOriginal = s.visual && KIND2LABEL[(s.visual as any).kind] === s.visualLabel;
       return {
@@ -258,7 +249,7 @@ export default function Create() {
         visualLabel: s.visualLabel, visual: keepOriginal ? s.visual : undefined, bg: s.bg || undefined,
       };
     });
-    const script = {
+    return {
       ...rawScript.current, template, title: title || topic, hook, scenes: outScenes,
       artStyle: artStyle || undefined,
       voice: voice || undefined, voiceProvider: voice ? voiceProvider : undefined,
@@ -266,8 +257,55 @@ export default function Create() {
       colors: colors ?? undefined,
       outro: { enabled: outroOn, tagline: outroTagline, bg: (outroOn && outroBg) || undefined },
       watermark,
-      approved: true,
     };
+  }
+
+  async function saveBranding(sb: NonNullable<ReturnType<typeof getSupabase>>, userId: string) {
+    const bconfig = { name: brand.name.trim(), signoff: brand.signoff.trim(), tagline: brand.tagline.trim() };
+    if (brandRow) await sb.from('channels').update({ config: bconfig }).eq('id', brandRow);
+    else if (bconfig.name || bconfig.signoff || bconfig.tagline) {
+      const { data: nb } = await sb.from('channels').insert({ user_id: userId, config: bconfig }).select('id').single();
+      if (nb) setBrandRow(nb.id);
+    }
+  }
+
+  // 렌더 없이 대본만 저장 — 크레딧 차감 없음, 상태·완성 영상은 그대로 둔다.
+  async function saveDraft() {
+    const sb = getSupabase(); if (!sb || !jobId) return;
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) { location.href = '/login'; return; }
+    setBusy(true);
+    await saveBranding(sb, session.user.id);
+    const { error } = await sb.from('jobs').update({ script: { ...buildScript(), approved: false } }).eq('id', jobId);
+    setBusy(false);
+    if (error) { alert('저장 실패: ' + error.message); return; }
+    setSavedMsg(true); setTimeout(() => setSavedMsg(false), 2500);
+  }
+
+  // 방향 코멘트와 함께 대본을 처음부터 다시 쓴다. 스타일·색상 등 설정은 유지.
+  async function regenerate() {
+    const sb = getSupabase(); if (!sb || !jobId) return;
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) { location.href = '/login'; return; }
+    setBusy(true);
+    const { scenes: _s, title: _t, hook: _h, ...settings } = buildScript() as any;
+    const script = { ...settings, regenerateNote: regenNote.trim() || undefined, approved: false };
+    const { error } = await sb.from('jobs').update({ script, status: 'pending', error: null }).eq('id', jobId);
+    setBusy(false);
+    if (error) { alert('재생성 접수 실패: ' + error.message); return; }
+    setRegenOpen(false); setRegenNote('');
+    setPhase('generating');
+  }
+
+  async function approveRender() {
+    const sb = getSupabase(); if (!sb || !jobId) return;
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) { location.href = '/login'; return; }
+    setBusy(true);
+    await saveBranding(sb, session.user.id);
+    const { data: prof } = await sb.from('profiles').select('credits').eq('id', session.user.id).single();
+    if ((prof?.credits ?? 0) < 10) { alert('크레딧이 부족합니다.'); setBusy(false); return; }
+    const script = { ...buildScript(), approved: true };
     const { error } = await sb.from('jobs').update({ script, status: 'scripted', error: null, video_url: null }).eq('id', jobId);
     if (error) { alert('저장 실패: ' + error.message); setBusy(false); return; }
     await sb.from('profiles').update({ credits: (prof!.credits as number) - 10 }).eq('id', session.user.id);
@@ -606,7 +644,27 @@ export default function Create() {
                 <div className="sum-row"><span>씬</span><b>{scenes.length}개</b></div>
                 <div className="sum-row"><span>예상 길이</span><b>{Math.round(total)}초</b></div>
                 <div className="sum-row"><span>크레딧</span><b>10</b></div>
-                <button className="btn primary" style={{ width: '100%', marginTop: 12 }} disabled={busy} onClick={approveRender}>
+                <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+                  <button className="btn" style={{ flex: 1 }} disabled={busy} onClick={saveDraft}>
+                    {savedMsg ? '✓ 저장됨' : '💾 대본 저장'}
+                  </button>
+                  <button className="btn" style={{ flex: 1 }} disabled={busy} onClick={() => setRegenOpen(!regenOpen)}>
+                    🔄 재생성
+                  </button>
+                </div>
+                {regenOpen ? (
+                  <div style={{ marginTop: 10, padding: 10, border: '1px solid var(--line)', borderRadius: 10 }}>
+                    <label style={{ fontSize: 11.5 }}>방향 코멘트 (선택)</label>
+                    <textarea value={regenNote} onChange={(e) => setRegenNote(e.target.value)} rows={3}
+                      placeholder={'예: 요금제 비교표 중심으로 더 구체적으로\n예: 초보자 눈높이로 쉽게, 덜 공격적으로'}
+                      style={{ width: '100%', marginTop: 6, fontSize: 13, resize: 'vertical' }} />
+                    <button className="btn primary" style={{ width: '100%', marginTop: 8 }} disabled={busy} onClick={regenerate}>
+                      {busy ? '접수 중…' : '대본 새로 쓰기 (무료)'}
+                    </button>
+                    <p style={{ fontSize: 11, color: 'var(--faint)', margin: '8px 0 0' }}>지금 대본을 버리고 처음부터 다시 써요. 색상·목소리·아웃트로 등 설정은 유지됩니다.</p>
+                  </div>
+                ) : null}
+                <button className="btn primary" style={{ width: '100%', marginTop: 8 }} disabled={busy} onClick={approveRender}>
                   {busy ? '접수 중…' : '렌더 시작 (10크레딧)'}
                 </button>
               </div>

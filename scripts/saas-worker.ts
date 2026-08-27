@@ -162,9 +162,16 @@ async function generateOne(): Promise<boolean> {
     } catch (e) {
       log.warn(`  수집 실패 — 일반 지식 모드: ${e instanceof Error ? e.message : e}`);
     }
-    const generated = withDisclosure(await generateScript({ topic: job.topic, channel, brief }), channel);
+    // 재생성 방향 코멘트 — 에디터의 재생성 버튼에서 넘어온다. 1회성으로 소비.
+    const direction = typeof job.script?.regenerateNote === 'string' ? job.script.regenerateNote : undefined;
+    const generated = withDisclosure(await generateScript({ topic: job.topic, channel, brief, direction }), channel);
+    // 재생성이어도 에디터에서 고른 설정(스타일·목소리·색상·아웃트로 등)은 유지한다.
+    const kept: Record<string, unknown> = {};
+    for (const k of ['artStyle', 'voice', 'voiceProvider', 'bgm', 'colors', 'outro', 'watermark'] as const) {
+      if (job.script?.[k] !== undefined) kept[k] = job.script[k];
+    }
     const script = {
-      ...generated, template, approved: false,
+      ...generated, ...kept, template, approved: false,
       ...(brief ? { factCount: brief.facts.length, newsSources: brief.sources } : {}),
     };
     await patchJob(job.id, { status: 'scripted', script, error: null });

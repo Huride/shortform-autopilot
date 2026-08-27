@@ -395,11 +395,13 @@ export interface ScriptInput {
   topic: string;
   channel?: Channel;
   brief?: Brief;
+  /** 재생성 시 운영자가 준 방향 코멘트 — 사실·구조 규칙은 유지한 채 연출 방향만 바꾼다. */
+  direction?: string;
 }
 
-export async function generateScript({ topic, channel, brief }: ScriptInput): Promise<Script> {
+export async function generateScript({ topic, channel, brief, direction }: ScriptInput): Promise<Script> {
   const system = channel ? channelSystem(channel) : GENERIC_SYSTEM;
-  const user = brief
+  const baseUser = brief
     ? `${briefBlock(brief)}
 
 Write a 30–50 second short-form script from the above.
@@ -420,6 +422,16 @@ No researched facts list is provided for this script. In place of the facts-list
 - If you use an illustrative number, frame it clearly as approximate ("약", "안팎").
 - Hedge anything uncertain. Never invent statistics, dates, or quotes.
 - Always return a complete script with 4–6 scenes — an empty script is never the right answer.`;
+
+  const user = direction?.trim()
+    ? `${baseUser}
+
+## Creator's direction (must follow)
+The channel operator reviewed a previous draft and asked for this rewrite:
+"${direction.trim()}"
+Apply this direction to tone, angle, and emphasis — while keeping every factual
+and structural rule above. Do not invent facts to satisfy the direction.`
+    : baseUser;
 
   try {
     return normalize(
