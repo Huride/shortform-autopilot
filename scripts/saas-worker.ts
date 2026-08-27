@@ -166,7 +166,8 @@ async function processOne(): Promise<boolean> {
     const template = job.script?.template ?? 'tpl-critic';
     const baseChannel = loadChannel(template);
     // 에디터에서 고른 생성 배경 아트 스타일 (없으면 채널 기본 artDirection)
-    const ART_STYLES: Record<string, { ad: string; style?: 'abstract' | 'satire' }> = {
+    const ART_STYLES: Record<string, { ad: string; style?: 'abstract' | 'satire' | 'photo' }> = {
+      photo: { ad: 'Cinematic photorealistic still-life or place photography: real-world textures, shallow depth of field, moody natural light, dark tones.', style: 'photo' },
       minimal: { ad: 'Clean minimal geometric abstraction: a few large flat shapes, generous negative space, one soft accent glow. Calm and premium.' },
       ink: { ad: 'Editorial-cartoon ink illustration: bold black ink lines, cross-hatching, textured paper feel, one spot accent color.', style: 'satire' },
       cinematic: { ad: 'Cinematic moody scene: deep gradient atmosphere, volumetric light, subtle film grain, epic but restrained.' },

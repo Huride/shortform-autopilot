@@ -32,7 +32,6 @@ import type { Brief } from '../types.js';
  */
 const COMMON_CONSTRAINTS = [
   'Never depict a real person recognizably. No combination of facial features, hairstyle, and body shape that evokes a specific public figure.',
-  'Never produce photorealistic imagery.',
   'No text, numbers, logos, party symbols, or national flags.',
   'Never reconstruct an actual event scene.',
   'The center and bottom 40% of the frame is where captions sit. Keep that area dark and visually simple.',
@@ -42,16 +41,22 @@ const COMMON_CONSTRAINTS = [
 const STYLE_CONSTRAINTS: Record<ImageStyle, string[]> = {
   abstract: [
     'No people, faces, or human silhouettes of any kind. No crowds, no back views.',
-    'Abstract or symbolic illustration only.',
+    'Abstract or symbolic illustration only. Never photorealistic.',
+  ],
+  // 실사풍 — 사진적 질감은 허용하되, 실존 인물·장면 재현으로 오인될 여지는 차단.
+  photo: [
+    'Photorealistic photographic style IS allowed for objects, places, and textures.',
+    'Absolutely no people, faces, hands, or human silhouettes.',
+    'Generic settings only — never a recognizable real landmark, storefront, or brand.',
   ],
   satire: [
-    'Editorial-cartoon style: bold ink lines, exaggerated proportions, cross-hatching.',
+    'Editorial-cartoon style: bold ink lines, exaggerated proportions, cross-hatching. Never photorealistic.',
     'Figures must be anonymous only: blank faces (no facial features), back views, shadow silhouettes, or personified objects.',
     'Build the satire from situation and composition — like a giant rubber stamp crushing small desks. Mock structures, not individuals.',
   ],
 };
 
-export type ImageStyle = 'abstract' | 'satire';
+export type ImageStyle = 'abstract' | 'satire' | 'photo';
 
 const PromptSchema = z.object({
   concept: z.string().describe('One abstract concept that visually represents this issue. One sentence.'),
@@ -63,6 +68,9 @@ const PromptSchema = z.object({
 });
 
 const STYLE_EXAMPLES: Record<ImageStyle, string> = {
+  photo: `Good: a moody close-up of coins on a dark wooden table, an empty convenience-store aisle at night,
+rain on a window with bokeh city lights, a dramatic sky over generic rooftops.
+Bad: any person or hand, a recognizable landmark, readable signage or packaging text.`,
   abstract: `Good: a geometric pattern of empty meeting-room chairs, cracked concrete texture, overlapping document silhouettes,
 cold light falling down a staircase, mismatched gears.
 Bad: a politician giving a speech, a photorealistic parliament building, a protest crowd.`,
@@ -73,6 +81,8 @@ Bad: a caricature resembling a specific politician, any real person's face, a re
 
 /** Re-asserted in English at the end. Even if the generated prompt drifts, this wins. */
 const STYLE_SUFFIX: Record<ImageStyle, string> = {
+  photo:
+    'Photorealistic photography style. Absolute requirements: no people, faces, hands, or silhouettes. No text, letters, numbers, logos, flags. No recognizable real landmarks or brands. Cinematic moody lighting, dark overall.',
   abstract:
     'Absolute requirements: no people, no faces, no human figures or silhouettes. No text, letters, numbers, logos, flags, or party symbols. Not photorealistic — abstract or symbolic illustration only.',
   satire:

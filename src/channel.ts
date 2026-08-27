@@ -58,7 +58,7 @@ export interface Channel {
    * abstract = 추상·상징 (인물 전면 금지)
    * satire   = 만평풍 풍자 (익명 인물까지 허용 — 실존 인물 식별 가능 묘사는 여전히 금지)
    */
-  imageStyle?: 'abstract' | 'satire';
+  imageStyle?: 'abstract' | 'satire' | 'photo';
   /** 시각 정체성. 채널마다 결과물이 달라 보여야 한다 (docs/CHANNEL.md §3-1). */
   theme: Theme;
   /**

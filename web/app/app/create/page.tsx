@@ -25,6 +25,7 @@ const ART_STYLES = [
   { id: 'cinematic', name: '시네마틱', desc: '무드 · 빛줄기' },
   { id: 'watercolor', name: '수채화', desc: '번짐 · 종이 질감' },
   { id: 'neon', name: '네온 테크', desc: '빛나는 회로선' },
+  { id: 'photo', name: '실사풍', desc: '사진 질감 · 인물 없음' },
 ];
 const TEMPLATES = [
   { id: 'tpl-critic', name: '소비자 비판형', emph: 'box', emphName: '라벨 강조' },
@@ -262,11 +263,15 @@ export default function Create() {
                   </div>
                   {bgOpen === i && (
                     <div className="pickgrid" style={{ margin: '0 16px 14px', gridTemplateColumns: 'repeat(auto-fill,minmax(140px,1fr))' }}>
-                      <button type="button" className={`pickitem${!s.bg ? ' sel' : ''}`} onClick={() => { set(i, { bg: undefined }); setBgOpen(null); }}>
-                        <img src={artStyle ? `/ui/style-${artStyle}.jpg` : `/ui/bgart-${template}.jpg`} alt="" style={{ aspectRatio: '9/16' }} />
-                        <b>생성 — {(ART_STYLES.find((a) => a.id === artStyle) ?? ART_STYLES[0]).name}</b>
-                        <small>렌더 때 이 주제로 새로 그려요 (스타일은 우측에서 변경)</small>
-                      </button>
+                      <div style={{ gridColumn: '1 / -1', fontSize: 11.5, color: 'var(--sub)', fontWeight: 700 }}>✦ 생성 — 주제에 맞춰 새로 그립니다. 스타일을 고르세요 (영상 전체 공통)</div>
+                      {ART_STYLES.map((a) => (
+                        <button type="button" key={a.id || 'default'} className={`pickitem${!s.bg && artStyle === a.id ? ' sel' : ''}`}
+                          onClick={() => { setArtStyle(a.id); set(i, { bg: undefined }); setBgOpen(null); }}>
+                          <img src={a.id ? `/ui/style-${a.id}.jpg` : `/ui/bgart-${template}.jpg`} alt={a.name} style={{ aspectRatio: '9/16' }} />
+                          <b>{a.name}</b><small>{a.desc}</small>
+                        </button>
+                      ))}
+                      <div style={{ gridColumn: '1 / -1', fontSize: 11.5, color: 'var(--sub)', fontWeight: 700, marginTop: 4 }}>📷 실사 · 내 이미지</div>
                       <label className="pickitem" style={{ cursor: 'pointer' }}>
                         <span style={{ aspectRatio: '9/16', display: 'grid', placeItems: 'center', background: 'var(--card2)', borderRadius: 7, marginBottom: 6, fontSize: 26 }}>
                           {uploading === i ? <span className="spinner" /> : '📤'}
