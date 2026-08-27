@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import Vid from '@/components/Vid';
 import { getSupabase } from '@/lib/supabase';
 
-type Job = { id: string; topic: string; status: string; video_url: string | null; error: string | null; created_at: string };
+type Job = { id: string; topic: string; status: string; video_url: string | null; error: string | null; created_at: string; approved?: boolean | null };
 
 const SAMPLES = [
   { k: 'brief', title: '[샘플] 오늘 꼭 알아야 할 3가지', d: '쓰리씽' },
@@ -12,7 +12,7 @@ const SAMPLES = [
   { k: 'fact', title: '[샘플] 라면값 인상설 팩트체크', d: '진짜야?' },
   { k: 'story', title: '[샘플] 1위 회사는 어쩌다 사라졌나', d: '그때 그 회사' },
 ];
-const STAGE: Record<string, string> = { scripted: '대기 중 — 곧 시작돼요', voiced: '음성·렌더 진행 중…', rendered: '완료' };
+const STAGE: Record<string, string> = { pending: '대본 작성 중…', scripted: '렌더 대기', voiced: '음성·렌더 진행 중…', rendered: '완료' };
 
 export default function Library() {
   const [tab, setTab] = useState(typeof location !== 'undefined' && location.search.includes('tab=1') ? 1 : 0);
@@ -23,7 +23,7 @@ export default function Library() {
     if (!sb) return;
     let stop = false;
     const load = async () => {
-      const { data } = await sb.from('jobs').select('id, topic, status, video_url, error, created_at').order('created_at', { ascending: false });
+      const { data } = await sb.from('jobs').select('id, topic, status, video_url, error, created_at, approved:script->approved').order('created_at', { ascending: false });
       if (!stop && data) setJobs(data as Job[]);
     };
     load();
@@ -32,7 +32,7 @@ export default function Library() {
   }, []);
 
   const done = jobs.filter((j) => j.status === 'rendered' && j.video_url);
-  const doing = jobs.filter((j) => ['scripted', 'voiced'].includes(j.status));
+  const doing = jobs.filter((j) => j.status === 'pending' || j.status === 'voiced' || (j.status === 'scripted' && j.approved === true));
   const failed = jobs.filter((j) => j.status === 'failed');
 
   return (

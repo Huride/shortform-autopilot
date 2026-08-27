@@ -11,6 +11,7 @@ import { loadChannel } from '../src/channel.js';
 import { env } from '../src/config.js';
 import { log } from '../src/log.js';
 import { renderShort, toShortProps } from '../src/pipeline/render.js';
+import { generateScript, withDisclosure } from '../src/pipeline/script.js';
 import { synthesizeScript } from '../src/pipeline/tts.js';
 import type { Scene, Script } from '../src/types.js';
 
@@ -27,7 +28,7 @@ function decrypt(b64: string): string {
   return Buffer.concat([d.update(enc), d.final()]).toString('utf8');
 }
 
-type EditorScene = { narration: string; caption: string; emphasis?: string; visualLabel?: string; bgChoice?: string };
+type EditorScene = { narration: string; caption: string; emphasis?: string; visualLabel?: string; bgChoice?: string; visual?: Scene['visual'] };
 
 /** 에디터의 느슨한 씬을 렌더러 Script 로 변환. 값이 필요한 카드는 안전한 폴백. */
 function toScript(raw: any, signoff?: string): Script {
@@ -35,6 +36,11 @@ function toScript(raw: any, signoff?: string): Script {
     const emphasis = s.emphasis?.trim() && s.caption.includes(s.emphasis.trim()) ? s.emphasis.trim() : undefined;
     let visual: Scene['visual'];
     const em = s.emphasis?.trim() || '';
+    if (s.visual && typeof s.visual === 'object' && 'kind' in s.visual) {
+      // LLM 이 생성한 원본 비주얼 — 에디터에서 종류를 안 바꿨으면 그대로 쓴다.
+      visual = s.visual;
+      return { narration: s.narration.trim(), caption: s.caption?.trim() || s.narration.slice(0, 20), emphasis, visual };
+    }
     switch (s.visualLabel) {
       case '카운트업 통계': visual = { kind: 'stat', value: em || s.caption, label: em ? s.caption : '' }; break;
       case '인용 패널': visual = { kind: 'quote', text: s.narration.slice(0, 60), attribution: '' }; break;
@@ -59,8 +65,43 @@ async function patchJob(id: string, body: object) {
   await rest(`jobs?id=eq.${id}`, { method: 'PATCH', body: JSON.stringify({ ...body, updated_at: new Date().toISOString() }) });
 }
 
+async function injectUserKey(userId: string) {
+  const kr = await rest(`user_keys?user_id=eq.${userId}&provider=eq.openai&select=key_encrypted`);
+  const [krow] = await kr.json();
+  if (!krow) throw new Error('설정에서 OpenAI API 키를 먼저 연결해주세요.');
+  process.env.OPENAI_API_KEY = decrypt(krow.key_encrypted);
+}
+
+/** 1단계: pending 잡 → LLM 대본 생성 → scripted(미승인) 로 에디터에 넘긴다. */
+async function generateOne(): Promise<boolean> {
+  const r = await rest(`jobs?status=eq.pending&order=created_at.asc&limit=1&select=*`);
+  const [job] = await r.json();
+  if (!job) return false;
+  const claim = await rest(`jobs?id=eq.${job.id}&status=eq.pending`, {
+    method: 'PATCH', headers: { Prefer: 'return=representation' }, body: JSON.stringify({ status: 'pending', error: 'claimed' }),
+  });
+  if ((await claim.json()).length === 0) return true;
+
+  log.step(`[${job.id.slice(0, 8)}] 대본 생성 — ${job.topic}`);
+  try {
+    await injectUserKey(job.user_id);
+    const template = job.script?.template ?? 'tpl-critic';
+    const channel = loadChannel(template);
+    const generated = withDisclosure(await generateScript({ topic: job.topic, channel }), channel);
+    const script = { ...generated, template, approved: false };
+    await patchJob(job.id, { status: 'scripted', script, error: null });
+    log.ok(`  대본 ${generated.scenes.length}씬 — 에디터 대기`);
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    log.error(`  생성 실패: ${msg}`);
+    await patchJob(job.id, { status: 'failed', error: msg.slice(0, 300) });
+  }
+  return true;
+}
+
 async function processOne(): Promise<boolean> {
-  const r = await rest(`jobs?status=eq.scripted&order=created_at.asc&limit=1&select=*`);
+  // 승인된 대본만 렌더한다 — 미승인(scripted) 은 에디터가 소유한 초안.
+  const r = await rest(`jobs?status=eq.scripted&script->>approved=eq.true&order=created_at.asc&limit=1&select=*`);
   const [job] = await r.json();
   if (!job) return false;
 
@@ -72,11 +113,7 @@ async function processOne(): Promise<boolean> {
 
   log.step(`[${job.id.slice(0, 8)}] ${job.topic}`);
   try {
-    // 사용자 키 주입
-    const kr = await rest(`user_keys?user_id=eq.${job.user_id}&provider=eq.openai&select=key_encrypted`);
-    const [krow] = await kr.json();
-    if (!krow) throw new Error('설정에서 OpenAI API 키를 먼저 연결해주세요.');
-    process.env.OPENAI_API_KEY = decrypt(krow.key_encrypted);
+    await injectUserKey(job.user_id);
 
     const template = job.script?.template ?? 'tpl-critic';
     const channel = loadChannel(template);
@@ -113,7 +150,7 @@ async function processOne(): Promise<boolean> {
 async function main() {
   log.info(`SaaS 워커 시작 — ${SB}`);
   for (;;) {
-    try { await processOne(); } catch (e) { log.error(String(e)); }
+    try { await generateOne(); await processOne(); } catch (e) { log.error(String(e)); }
     await new Promise((r) => setTimeout(r, 5000));
   }
 }

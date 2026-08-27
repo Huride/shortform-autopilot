@@ -356,7 +356,11 @@ export function normalizeScenes(
 function normalize(raw: z.infer<typeof ScriptSchema>): Script {
   const scenes = normalizeScenes(raw.scenes);
 
-  if (scenes.length === 0) throw new Error('Script has no valid scenes.');
+  if (scenes.length === 0) {
+    // 디버깅 가능해야 한다 — 모델이 빈 배열을 줬는지, 필터가 다 걸렀는지 구분.
+    const sample = JSON.stringify(raw.scenes[0] ?? null).slice(0, 200);
+    throw new Error(`Script has no valid scenes (raw=${raw.scenes.length}, sample=${sample}).`);
+  }
 
   return {
     title: raw.title.trim().slice(0, 100), // YouTube title cap
@@ -395,7 +399,15 @@ export async function generateScript({ topic, channel, brief }: ScriptInput): Pr
   const system = channel ? channelSystem(channel) : GENERIC_SYSTEM;
   const user = brief
     ? `${briefBlock(brief)}\n\nWrite a 30–50 second short-form script from the above.`
-    : `Write a 30–50 second informational short-form script on this topic.\n\nTopic: ${topic}`;
+    : `Write a 30–50 second informational short-form script on this topic.
+
+Topic: ${topic}
+
+No researched facts list is provided for this script. In place of the facts-list rule:
+- State only widely known, uncontroversial facts; prefer relative phrasing ("크게 올랐다") over precise unverified numbers.
+- If you use an illustrative number, frame it clearly as approximate ("약", "안팎").
+- Hedge anything uncertain. Never invent statistics, dates, or quotes.
+- Always return a complete script with 4–6 scenes — an empty script is never the right answer.`;
 
   try {
     return normalize(
