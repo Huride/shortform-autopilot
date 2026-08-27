@@ -9,10 +9,21 @@ const KIND2LABEL: Record<string, string> = {
   keyword: '키워드 스탬프', stat: '카운트업 통계', quote: '인용 패널',
   contrast: 'VS 대비', list: '리스트', chart: '차트', logo: '로고 카드', logos: '로고 카드',
 };
-const VISUAL_LABELS = ['키워드 스탬프', '카운트업 통계', '인용 패널', 'VS 대비', '리스트', '차트'];
+const CARD_PICK = [
+  { label: '키워드 스탬프', img: 'keyword', desc: '핵심 한 마디를 크게' },
+  { label: '카운트업 통계', img: 'stat', desc: '숫자가 주인공일 때' },
+  { label: '인용 패널', img: 'quote', desc: '발언·문구를 보여줄 때' },
+  { label: 'VS 대비', img: 'contrast', desc: '둘을 비교할 때' },
+  { label: '리스트', img: 'list', desc: '나열이 핵심일 때' },
+  { label: '차트', img: 'chart', desc: '추세를 보여줄 때' },
+];
+const VISUAL_LABELS = CARD_PICK.map((c) => c.label);
 const TEMPLATES = [
-  { id: 'tpl-critic', name: '소비자 비판형' }, { id: 'tpl-number', name: '넘버 앵커형' },
-  { id: 'tpl-brief', name: '브리핑형' }, { id: 'tpl-fact', name: '팩트체크형' }, { id: 'tpl-story', name: '스토리텔링형' },
+  { id: 'tpl-critic', name: '소비자 비판형', emph: 'box', emphName: '라벨 강조' },
+  { id: 'tpl-number', name: '넘버 앵커형', emph: 'glow', emphName: '네온 강조' },
+  { id: 'tpl-brief', name: '브리핑형', emph: 'underline', emphName: '밑줄 강조' },
+  { id: 'tpl-fact', name: '팩트체크형', emph: 'chip', emphName: '도장 강조' },
+  { id: 'tpl-story', name: '스토리텔링형', emph: 'color', emphName: '색상 강조' },
 ];
 const SUGGESTIONS = [
   { t: '통신 3사, 5G 중간요금제 일제 개편', s: '“중간”이 정말 중간인지 계산해볼 만한 소재' },
@@ -31,6 +42,7 @@ export default function Create() {
   const [title, setTitle] = useState('');
   const [scenes, setScenes] = useState<Scene[]>([]);
   const [busy, setBusy] = useState(false);
+  const [pickOpen, setPickOpen] = useState<number | null>(null);
   const [genError, setGenError] = useState('');
   const rawScript = useRef<Record<string, unknown>>({});
   const total = useMemo(() => scenes.reduce((a, s) => a + estimate(s.narration), 0), [scenes]);
@@ -124,10 +136,19 @@ export default function Create() {
                   <div className="card topic-box">
                     <label>무엇에 대한 영상인가요?</label>
                     <textarea placeholder="주제를 한 줄로 적어주세요 — 예: 아이폰 신모델 가격, 오를까?" value={topic} onChange={(e) => setTopic(e.target.value)} />
-                    <div style={{ display: 'flex', gap: 8, marginTop: 12, alignItems: 'center', flexWrap: 'wrap' }}>
-                      <select style={{ width: 'auto' }} value={template} onChange={(e) => setTemplate(e.target.value)}>
-                        {TEMPLATES.map((t) => <option key={t.id} value={t.id}>템플릿: {t.name}</option>)}
-                      </select>
+                    <label style={{ marginTop: 16 }}>템플릿 — 왼쪽은 실제 렌더, 오른쪽은 자막 강조 스타일</label>
+                    <div className="tplpick">
+                      {TEMPLATES.map((t) => (
+                        <button type="button" key={t.id} className={`pickitem${template === t.id ? ' sel' : ''}`} onClick={() => setTemplate(t.id)}>
+                          <span className="duo">
+                            <img src={`/media/poster-${t.id.replace('tpl-', '')}.jpg`} alt="" />
+                            <img src={`/ui/emph-${t.emph}.jpg`} alt="" />
+                          </span>
+                          <b>{t.name}</b><small>{t.emphName}</small>
+                        </button>
+                      ))}
+                    </div>
+                    <div style={{ display: 'flex', marginTop: 16 }}>
                       <button className="btn primary" style={{ marginLeft: 'auto' }} disabled={!topic.trim()} onClick={() => startGenerate(topic.trim())}>✦ 대본 만들기</button>
                     </div>
                     {genError && <p style={{ color: 'var(--warn)', fontSize: 13, marginTop: 10 }}>{genError}</p>}
@@ -175,13 +196,25 @@ export default function Create() {
                       <div className="row2">
                         <div><label>강조어</label><input value={s.emphasis} onChange={(e) => set(i, { emphasis: e.target.value })} /></div>
                         <div><label>카드</label>
-                          <select value={s.visualLabel} onChange={(e) => set(i, { visualLabel: e.target.value })}>
-                            {[...new Set([s.visualLabel, ...VISUAL_LABELS])].map((v) => <option key={v}>{v}</option>)}
-                          </select>
+                          <button type="button" className="pickbtn" onClick={() => setPickOpen(pickOpen === i ? null : i)}>
+                            <img src={`/ui/card-${(CARD_PICK.find((c) => c.label === s.visualLabel) ?? CARD_PICK[0]).img}.jpg`} alt="" />
+                            {s.visualLabel} <span style={{ marginLeft: 'auto', color: 'var(--faint)' }}>▾</span>
+                          </button>
                         </div>
                       </div>
                     </div>
                   </div>
+                  {pickOpen === i && (
+                    <div className="pickgrid" style={{ margin: '0 16px 14px' }}>
+                      {CARD_PICK.map((c) => (
+                        <button type="button" key={c.label} className={`pickitem${s.visualLabel === c.label ? ' sel' : ''}`}
+                          onClick={() => { set(i, { visualLabel: c.label }); setPickOpen(null); }}>
+                          <img src={`/ui/card-${c.img}.jpg`} alt={c.label} />
+                          <b>{c.label}</b><small>{c.desc}</small>
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
               ))}
               <button className="add-scene" onClick={add}>＋ 씬 추가</button>
