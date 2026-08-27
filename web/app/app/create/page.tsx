@@ -25,6 +25,8 @@ function estimate(narration: string) { return narration.length / 5 / 1.2 + 0.35;
 export default function Create() {
   const [step, setStep] = useState(1);
   const [topic, setTopic] = useState('');
+  const [hook, setHook] = useState('이번엔 정말 오를까?');
+  const [busy, setBusy] = useState(false);
   const [scenes, setScenes] = useState<Scene[]>(DRAFT);
   const total = useMemo(() => scenes.reduce((a, s) => a + estimate(s.narration), 0), [scenes]);
 
@@ -36,6 +38,30 @@ export default function Create() {
     const j = i + dir; if (j < 0 || j >= prev.length) return prev;
     const next = [...prev]; [next[i], next[j]] = [next[j], next[i]]; return next;
   });
+
+  async function startRender() {
+    const { getSupabase } = await import('@/lib/supabase');
+    const sb = getSupabase();
+    if (!sb) { alert('인증 서버가 연결되지 않았습니다.'); return; }
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) { location.href = '/login'; return; }
+    setBusy(true);
+    // 크레딧 차감 (10) — 부족하면 중단
+    const { data: prof } = await sb.from('profiles').select('credits').eq('id', session.user.id).single();
+    if ((prof?.credits ?? 0) < 10) { alert('크레딧이 부족합니다.'); setBusy(false); return; }
+    const script = {
+      template: 'tpl-critic',
+      title: topic || '제목 없는 영상',
+      hook,
+      scenes: scenes.map((s) => ({ narration: s.narration, caption: s.caption, emphasis: s.emphasis || undefined, visualLabel: s.visual, bgChoice: s.bg })),
+      description: (topic || '') + ' — Autopilot 생성 영상. 이 영상의 대본과 목소리는 AI로 제작되었습니다.',
+      hashtags: ['autopilot'],
+    };
+    const { error } = await sb.from('jobs').insert({ user_id: session.user.id, topic: topic || script.title, status: 'scripted', script });
+    if (error) { alert('접수 실패: ' + error.message); setBusy(false); return; }
+    await sb.from('profiles').update({ credits: (prof!.credits as number) - 10 }).eq('id', session.user.id);
+    location.href = '/app/library?tab=1';
+  }
 
   return (
     <section className="screen active" style={{ display: 'flex' }}>
@@ -78,6 +104,10 @@ export default function Create() {
                 <b style={{ fontSize: 15 }}>{topic || '아이폰 신모델, 가격이 오를 수밖에 없는 이유'}</b>
                 <span className="badge ok">팩트 6개 · 출처 연결됨</span>
               </div>
+              <div className="card" style={{ padding: '12px 16px', marginBottom: 14, display: 'flex', gap: 12, alignItems: 'center' }}>
+                <label style={{ margin: 0, flex: 'none' }}>후킹 문구 (첫 화면)</label>
+                <input value={hook} onChange={(e) => setHook(e.target.value)} style={{ flex: 1 }} />
+              </div>
               {scenes.map((s, i) => (
                 <div className="card scene-card" key={i}>
                   <div className="scene-head">
@@ -119,8 +149,8 @@ export default function Create() {
                 <div className="sum-row"><span>씬</span><b>{scenes.length}개</b></div>
                 <div className="sum-row"><span>예상 길이</span><b>{Math.round(total)}초</b></div>
                 <div className="sum-row"><span>크레딧</span><b>10</b></div>
-                <button className="btn primary" style={{ width: '100%', marginTop: 12 }}
-                  onClick={() => alert('렌더 백엔드는 다음 단계(M1 코어 이식)에서 연결됩니다.')}>렌더 시작</button>
+                <button className="btn primary" style={{ width: '100%', marginTop: 12 }} disabled={busy}
+                  onClick={startRender}>{busy ? '접수 중…' : '렌더 시작 (10크레딧)'}</button>
                 <button className="btn ghost" style={{ width: '100%', marginTop: 8 }} onClick={() => setScenes(DRAFT)}>✦ 대본 전체 다시 생성</button>
               </div>
               <div className="card" style={{ padding: '16px 18px' }}>

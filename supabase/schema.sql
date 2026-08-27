@@ -91,11 +91,15 @@ create policy "own usage" on usage_events for select using (auth.uid() = user_id
 create policy "own subs" on subscriptions for select using (auth.uid() = user_id);
 
 -- 가입 시 프로필 자동 생성
-create or replace function handle_new_user() returns trigger as $$
+-- security definer 함수는 search_path 를 못 박아야 한다 — auth 서버가 실행할 때
+-- 기본 search_path 에 public 이 없어 'relation profiles does not exist' 로
+-- 가입 전체가 실패한다 ("Database error saving new user").
+create or replace function public.handle_new_user() returns trigger
+language plpgsql security definer set search_path = public as $$
 begin
-  insert into profiles (id) values (new.id);
+  insert into public.profiles (id) values (new.id) on conflict (id) do nothing;
   return new;
-end; $$ language plpgsql security definer;
+end; $$;
 
 drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created after insert on auth.users

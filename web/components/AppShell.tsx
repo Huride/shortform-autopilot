@@ -1,6 +1,8 @@
 'use client';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { getSupabase } from '@/lib/supabase';
 
 const NAV = [
   { href: '/app/workspace', ic: '💬', label: '워크스페이스' },
@@ -10,6 +12,29 @@ const NAV = [
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const path = usePathname();
+  const router = useRouter();
+  const [email, setEmail] = useState<string | null>(null);
+  const [credits, setCredits] = useState<number | null>(null);
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    const sb = getSupabase();
+    if (!sb) { setReady(true); return; }
+    sb.auth.getSession().then(async ({ data: { session } }) => {
+      if (!session) { router.replace('/login'); return; }
+      setEmail(session.user.email ?? null);
+      const { data } = await sb.from('profiles').select('credits').eq('id', session.user.id).single();
+      setCredits(data?.credits ?? null);
+      setReady(true);
+    });
+  }, [router]);
+
+  async function logout() {
+    const sb = getSupabase();
+    if (sb) await sb.auth.signOut();
+    router.replace('/');
+  }
+
   return (
     <div className="app">
       <nav className="rail">
@@ -22,16 +47,15 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             <span className="ic">{n.ic}</span><span className="lbl">{n.label}</span>
           </Link>
         ))}
-        <div className="nav-sec">채널</div>
-        <Link href="/app/workspace" className="nav-item" style={{ textDecoration: 'none' }}><span className="ic">📺</span><span className="lbl">The Margin</span></Link>
         <div className="nav-sec">계정</div>
-        <Link href="/app/settings" className={`nav-item${path.startsWith('/app/settings') ? ' active' : ''}`} style={{ textDecoration: 'none' }}><span className="ic">⚙︎</span><span className="lbl">설정 · 구독</span></Link>
+        <Link href="/app/settings" className={`nav-item${path.startsWith('/app/settings') ? ' active' : ''}`} style={{ textDecoration: 'none' }}><span className="ic">⚙︎</span><span className="lbl">설정 · API 키</span></Link>
+        <button className="nav-item" onClick={logout}><span className="ic">↩</span><span className="lbl">로그아웃</span></button>
         <div className="rail-foot">
-          <div className="plan-pill"><span>둘러보기 모드</span><Link className="up-link" href="/app/settings">업그레이드</Link></div>
-          <div style={{ fontSize: 11, marginTop: 4 }}>크레딧 <b style={{ color: 'var(--nav-active)' }}>—</b> · 로그인 후 표시</div>
+          <div className="plan-pill"><span>{email ? email.split('@')[0] : '…'}</span><Link className="up-link" href="/app/settings">무료 플랜</Link></div>
+          <div style={{ fontSize: 11, marginTop: 4 }}>크레딧 <b style={{ color: 'var(--nav-active)' }}>{credits ?? '—'}</b> · 렌더 1편 = 10</div>
         </div>
       </nav>
-      <main className="main">{children}</main>
+      <main className="main">{ready ? children : <div style={{ padding: 40, color: 'var(--faint)' }}>불러오는 중…</div>}</main>
     </div>
   );
 }
