@@ -18,6 +18,14 @@ const CARD_PICK = [
   { label: '차트', img: 'chart', desc: '추세를 보여줄 때' },
 ];
 const VISUAL_LABELS = CARD_PICK.map((c) => c.label);
+const ART_STYLES = [
+  { id: '', name: '채널 기본', desc: '템플릿 고유 아트' },
+  { id: 'minimal', name: '미니멀', desc: '큰 도형 · 여백' },
+  { id: 'ink', name: '잉크 일러스트', desc: '만평풍 펜 선' },
+  { id: 'cinematic', name: '시네마틱', desc: '무드 · 빛줄기' },
+  { id: 'watercolor', name: '수채화', desc: '번짐 · 종이 질감' },
+  { id: 'neon', name: '네온 테크', desc: '빛나는 회로선' },
+];
 const STOCK_PICK = [
   { path: 'bg/stock/applestore.jpg', img: 'stock-applestore', name: '애플스토어' },
   { path: 'bg/stock/noodle-shelf.jpg', img: 'stock-noodle-shelf', name: '라면 매대' },
@@ -52,6 +60,21 @@ export default function Create() {
   const [busy, setBusy] = useState(false);
   const [pickOpen, setPickOpen] = useState<number | null>(null);
   const [bgOpen, setBgOpen] = useState<number | null>(null);
+  const [artStyle, setArtStyle] = useState('');
+  const [artOpen, setArtOpen] = useState(false);
+  const [bgQuery, setBgQuery] = useState('');
+  const [bgResults, setBgResults] = useState<{ url: string; thumb: string; title: string; license: string }[]>([]);
+  const [bgSearching, setBgSearching] = useState(false);
+
+  async function searchStock() {
+    if (!bgQuery.trim()) return;
+    setBgSearching(true); setBgResults([]);
+    try {
+      const r = await fetch(`/api/stock?q=${encodeURIComponent(bgQuery.trim())}`);
+      const j = await r.json();
+      setBgResults(j.results ?? []);
+    } finally { setBgSearching(false); }
+  }
   const [genError, setGenError] = useState('');
   const rawScript = useRef<Record<string, unknown>>({});
   const total = useMemo(() => scenes.reduce((a, s) => a + estimate(s.narration), 0), [scenes]);
@@ -109,7 +132,7 @@ export default function Create() {
         visualLabel: s.visualLabel, visual: keepOriginal ? s.visual : undefined, bg: s.bg || undefined,
       };
     });
-    const script = { ...rawScript.current, template, title: title || topic, hook, scenes: outScenes, approved: true };
+    const script = { ...rawScript.current, template, title: title || topic, hook, scenes: outScenes, artStyle: artStyle || undefined, approved: true };
     const { error } = await sb.from('jobs').update({ script }).eq('id', jobId);
     if (error) { alert('저장 실패: ' + error.message); setBusy(false); return; }
     await sb.from('profiles').update({ credits: (prof!.credits as number) - 10 }).eq('id', session.user.id);
@@ -223,8 +246,8 @@ export default function Create() {
                       </div>
                       <div><label>배경</label>
                         <button type="button" className="pickbtn" onClick={() => setBgOpen(bgOpen === i ? null : i)}>
-                          <img src={s.bg ? `/ui/${(STOCK_PICK.find((x) => x.path === s.bg) ?? STOCK_PICK[0]).img}.jpg` : `/ui/bgart-${template}.jpg`} alt="" style={{ height: 30 }} />
-                          {s.bg ? (STOCK_PICK.find((x) => x.path === s.bg)?.name ?? '실사') : '채널 아트 (자동 생성)'}
+                          <img src={!s.bg ? `/ui/bgart-${template}.jpg` : s.bg.startsWith('http') ? s.bg.replace('/1600px-', '/480px-') : `/ui/${(STOCK_PICK.find((x) => x.path === s.bg) ?? STOCK_PICK[0]).img}.jpg`} alt="" style={{ height: 30 }} />
+                          {!s.bg ? '채널 아트 (자동 생성)' : s.bg.startsWith('http') ? '실사 (검색)' : (STOCK_PICK.find((x) => x.path === s.bg)?.name ?? '실사')}
                           <span style={{ marginLeft: 'auto', color: 'var(--faint)' }}>▾</span>
                         </button>
                       </div>
@@ -242,6 +265,24 @@ export default function Create() {
                           <b>{x.name}</b><small>실사 — 채널 톤으로 자동 그레이딩</small>
                         </button>
                       ))}
+                      <div style={{ gridColumn: '1 / -1', display: 'flex', gap: 8, alignItems: 'center' }}>
+                        <input placeholder="실사 검색 — 영어 키워드가 정확해요 (예: subway station)" value={bgQuery}
+                          onChange={(e) => setBgQuery(e.target.value)}
+                          onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); searchStock(); } }} />
+                        <button type="button" className="btn sm primary" style={{ flex: 'none' }} onClick={searchStock} disabled={bgSearching}>
+                          {bgSearching ? <span className="spinner" style={{ width: 12, height: 12 }} /> : '🔍 검색'}
+                        </button>
+                      </div>
+                      {bgResults.map((r) => (
+                        <button type="button" key={r.url} className={`pickitem${s.bg === r.url ? ' sel' : ''}`}
+                          onClick={() => { set(i, { bg: r.url }); setBgOpen(null); }}>
+                          <img src={r.thumb} alt={r.title} style={{ aspectRatio: '9/16' }} />
+                          <b style={{ fontSize: 10.5 }}>{r.title.slice(0, 22)}</b><small>{r.license}</small>
+                        </button>
+                      ))}
+                      {bgResults.length === 0 && bgQuery && !bgSearching && (
+                        <p style={{ gridColumn: '1 / -1', color: 'var(--faint)', fontSize: 12, margin: 0 }}>상업 사용 가능한 결과만 보여줘요 — 다른 키워드로 시도해보세요</p>
+                      )}
                     </div>
                   )}
                   {pickOpen === i && (
@@ -260,6 +301,26 @@ export default function Create() {
               <button className="add-scene" onClick={add}>＋ 씬 추가</button>
             </div>
             <div className="create-side">
+              <div className="card" style={{ padding: '14px 16px', marginBottom: 14 }}>
+                <label>생성 배경 아트 스타일</label>
+                <button type="button" className="pickbtn" onClick={() => setArtOpen(!artOpen)}>
+                  <img src={artStyle ? `/ui/style-${artStyle}.jpg` : `/ui/bgart-${template}.jpg`} alt="" />
+                  {(ART_STYLES.find((a) => a.id === artStyle) ?? ART_STYLES[0]).name}
+                  <span style={{ marginLeft: 'auto', color: 'var(--faint)' }}>▾</span>
+                </button>
+                {artOpen && (
+                  <div className="pickgrid" style={{ marginTop: 10, gridTemplateColumns: 'repeat(2,1fr)' }}>
+                    {ART_STYLES.map((a) => (
+                      <button type="button" key={a.id} className={`pickitem${artStyle === a.id ? ' sel' : ''}`}
+                        onClick={() => { setArtStyle(a.id); setArtOpen(false); }}>
+                        <img src={a.id ? `/ui/style-${a.id}.jpg` : `/ui/bgart-${template}.jpg`} alt={a.name} />
+                        <b>{a.name}</b><small>{a.desc}</small>
+                      </button>
+                    ))}
+                  </div>
+                )}
+                <p style={{ fontSize: 11, color: 'var(--faint)', margin: '10px 0 0' }}>'채널 아트' 배경을 쓰는 씬에 적용돼요 — 주제에 맞춰 이 스타일로 새로 그립니다.</p>
+              </div>
               <div className="card" style={{ padding: '16px 18px', marginBottom: 14 }}>
                 <div className="sum-row"><span>씬</span><b>{scenes.length}개</b></div>
                 <div className="sum-row"><span>예상 길이</span><b>{Math.round(total)}초</b></div>

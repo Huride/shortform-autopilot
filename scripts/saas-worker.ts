@@ -6,7 +6,8 @@
  * 사용자 OpenAI 키는 user_keys 에서 복호화해 잡 단위로 주입한다.
  */
 import { createDecipheriv } from 'node:crypto';
-import { readFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { loadChannel } from '../src/channel.js';
 import { env } from '../src/config.js';
 import { log } from '../src/log.js';
@@ -116,8 +117,36 @@ async function processOne(): Promise<boolean> {
   try {
     await injectUserKey(job.user_id);
 
+    // 에디터에서 검색·선택한 원격 실사 배경 → 로컬로 내려받아 상대 경로로 치환
+    // (렌더러의 채널 톤 그레이딩은 scene.bg 경로에 자동 적용된다)
+    const dlDir = resolve('remotion/public/bg/dl');
+    mkdirSync(dlDir, { recursive: true });
+    for (let i = 0; i < (job.script?.scenes?.length ?? 0); i++) {
+      const bg = job.script.scenes[i]?.bg;
+      if (typeof bg === 'string' && bg.startsWith('http')) {
+        const res = await fetch(bg, { headers: { 'User-Agent': 'autopilot-worker/1.0' } });
+        if (!res.ok) throw new Error(`배경 다운로드 실패 (${res.status}): 씬 ${i + 1}`);
+        const file = `${job.id}-${i}.jpg`;
+        writeFileSync(resolve(dlDir, file), Buffer.from(await res.arrayBuffer()));
+        job.script.scenes[i].bg = `bg/dl/${file}`;
+      }
+    }
+
     const template = job.script?.template ?? 'tpl-critic';
-    const channel = loadChannel(template);
+    const baseChannel = loadChannel(template);
+    // 에디터에서 고른 생성 배경 아트 스타일 (없으면 채널 기본 artDirection)
+    const ART_STYLES: Record<string, { ad: string; style?: 'abstract' | 'satire' }> = {
+      minimal: { ad: 'Clean minimal geometric abstraction: a few large flat shapes, generous negative space, one soft accent glow. Calm and premium.' },
+      ink: { ad: 'Editorial-cartoon ink illustration: bold black ink lines, cross-hatching, textured paper feel, one spot accent color.', style: 'satire' },
+      cinematic: { ad: 'Cinematic moody scene: deep gradient atmosphere, volumetric light, subtle film grain, epic but restrained.' },
+      watercolor: { ad: 'Soft watercolor wash textures on dark paper: organic bleeding edges, muted palette, delicate grain.' },
+      neon: { ad: 'Dark tech field with thin neon glowing lines and circuit-like geometry, holographic accents, futuristic.' },
+    };
+    const styleKey = job.script?.artStyle as string | undefined;
+    const styleOv = styleKey ? ART_STYLES[styleKey] : undefined;
+    const channel = styleOv
+      ? { ...baseChannel, artDirection: styleOv.ad, imageStyle: styleOv.style ?? 'abstract' }
+      : baseChannel;
     const script = toScript(job.script, channel.signoff);
 
     // 채널 아트 배경 — 잡당 1장 생성 (실패해도 테마 배경으로 진행)
