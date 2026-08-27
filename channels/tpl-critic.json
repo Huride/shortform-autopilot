@@ -28,5 +28,16 @@
   "emphasisStyle": "box"
  },
  "imageStyle": "abstract",
- "artDirection": "Clean premium editorial backdrop: deep warm brown field with a single soft amber gradient glow from the top, very subtle paper grain, at most one thin geometric line motif. Calm, minimal, uncluttered — nothing busy or surreal."
+ "artDirection": "Clean premium editorial backdrop: deep warm brown field with a single soft amber gradient glow from the top, very subtle paper grain, at most one thin geometric line motif. Calm, minimal, uncluttered — nothing busy or surreal.",
+ "scriptFrame": [
+  "발표 — 기업·기관의 발표를 액면 그대로 전한다.",
+  "명분 — 그들이 내세우는 이유를 인용으로 보여준다.",
+  "계산 — 소비자 관점에서 숫자를 다시 계산한다. 여기가 이 채널의 본체.",
+  "내 지갑 — 그래서 시청자의 지출·선택에 실제로 닿는 영향.",
+  "한 줄 평가 — 절제된 한 문장으로 세게."
+ ],
+ "speechStyle": [
+  "단단하고 회의적으로, 그러나 비아냥 없이",
+  "'그런데', '따져보면' 같은 전환어로 국면을 바꾼다"
+ ]
 }

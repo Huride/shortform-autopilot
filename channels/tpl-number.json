@@ -28,5 +28,16 @@
   "emphasisStyle": "glow"
  },
  "imageStyle": "abstract",
- "artDirection": "Deep navy financial abstraction: glowing amber grid lines, ascending geometric bars and orbits of thin golden rings over dark blue gradients. Precise, calm, premium banking-report mood."
+ "artDirection": "Deep navy financial abstraction: glowing amber grid lines, ascending geometric bars and orbits of thin golden rings over dark blue gradients. Precise, calm, premium banking-report mood.",
+ "scriptFrame": [
+  "넘버 앵커 — '오늘 숫자 하나만 기억하세요'로 열고 핵심 숫자를 박는다.",
+  "의미 — 그 숫자가 왜 오늘 중요한지 한 문장으로.",
+  "맥락 — 숫자를 만든 배경이나 추세. 비교 하나(차트/대비)로 보여준다.",
+  "조건 — 이 숫자를 곧이곧대로 믿으면 안 되는 이유 하나 (함정·단서).",
+  "회수 — 처음 숫자로 돌아와 결론. 시청자가 가져갈 행동 한 가지."
+ ],
+ "speechStyle": [
+  "앵커처럼 명료하게, 숫자 앞뒤에서 잠깐 호흡",
+  "숫자는 반드시 문장의 주인공 자리에"
+ ]
 }

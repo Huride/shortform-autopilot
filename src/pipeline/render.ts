@@ -17,6 +17,12 @@ import { VIDEO, type AudioTrack, type Script } from '../types.js';
 /** 번들은 프로세스당 한 번만 만든다 — 잡마다 다시 만들면 렌더 시간이 배로 든다. */
 let bundlePromise: Promise<string> | null = null;
 
+/** 장수 프로세스(워커)용 — 번들은 public/ 을 복사하므로, 새 오디오가 생기는
+ *  매 렌더 전에 무효화해야 한다. (CLI 는 잡당 프로세스라 해당 없음) */
+export function invalidateBundle(): void {
+  bundlePromise = null;
+}
+
 function getBundle(): Promise<string> {
   bundlePromise ??= bundle({
     entryPoint: PATHS.remotionEntry,

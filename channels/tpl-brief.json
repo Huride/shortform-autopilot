@@ -28,5 +28,17 @@
   "emphasisStyle": "underline"
  },
  "imageStyle": "abstract",
- "artDirection": "Fresh minimal morning-briefing mood: dark green field with three floating translucent panels, soft mint light beams, clean geometry, generous empty space."
+ "artDirection": "Fresh minimal morning-briefing mood: dark green field with three floating translucent panels, soft mint light beams, clean geometry, generous empty space.",
+ "scriptFrame": [
+  "예고 — 오늘의 2~3가지를 리스트로 먼저 보여준다. '오늘 꼭 알아야 할 N가지'.",
+  "① 첫 항목 — 사실 하나 + 그래서 뭐가 달라지는지 한 줄.",
+  "② 둘째 항목 — 같은 구조. 항목당 한 씬을 넘기지 않는다.",
+  "③ 셋째 항목 — 같은 구조 (2개면 생략).",
+  "마무리 — 내일 지켜볼 포인트 한 줄로 닫는다."
+ ],
+ "speechStyle": [
+  "경쾌하고 리듬감 있게 — 항목 사이를 빠르게 넘긴다",
+  "번호를 소리로도 읽어준다 (첫째, 둘째)",
+  "명사형 종결을 섞어 속도감을 만든다"
+ ]
 }

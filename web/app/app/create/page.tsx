@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { getSupabase } from '@/lib/supabase';
 
 type Visual = { kind: string; [k: string]: unknown } | undefined;
-type Scene = { narration: string; caption: string; emphasis: string; visualLabel: string; visual?: Visual };
+type Scene = { narration: string; caption: string; emphasis: string; visualLabel: string; visual?: Visual; bg?: string };
 
 const KIND2LABEL: Record<string, string> = {
   keyword: '키워드 스탬프', stat: '카운트업 통계', quote: '인용 패널',
@@ -18,6 +18,14 @@ const CARD_PICK = [
   { label: '차트', img: 'chart', desc: '추세를 보여줄 때' },
 ];
 const VISUAL_LABELS = CARD_PICK.map((c) => c.label);
+const STOCK_PICK = [
+  { path: 'bg/stock/applestore.jpg', img: 'stock-applestore', name: '애플스토어' },
+  { path: 'bg/stock/noodle-shelf.jpg', img: 'stock-noodle-shelf', name: '라면 매대' },
+  { path: 'bg/stock/mart-aisle.jpg', img: 'stock-mart-aisle', name: '마트 통로' },
+  { path: 'bg/stock/pylon.jpg', img: 'stock-pylon', name: '송전탑 노을' },
+  { path: 'bg/stock/coins.jpg', img: 'stock-coins', name: '동전' },
+  { path: 'bg/stock/nokia.jpg', img: 'stock-nokia', name: '피처폰' },
+];
 const TEMPLATES = [
   { id: 'tpl-critic', name: '소비자 비판형', emph: 'box', emphName: '라벨 강조' },
   { id: 'tpl-number', name: '넘버 앵커형', emph: 'glow', emphName: '네온 강조' },
@@ -43,6 +51,7 @@ export default function Create() {
   const [scenes, setScenes] = useState<Scene[]>([]);
   const [busy, setBusy] = useState(false);
   const [pickOpen, setPickOpen] = useState<number | null>(null);
+  const [bgOpen, setBgOpen] = useState<number | null>(null);
   const [genError, setGenError] = useState('');
   const rawScript = useRef<Record<string, unknown>>({});
   const total = useMemo(() => scenes.reduce((a, s) => a + estimate(s.narration), 0), [scenes]);
@@ -61,7 +70,7 @@ export default function Create() {
         setHook(j.script.hook ?? '');
         setScenes((j.script.scenes as any[]).map((s) => ({
           narration: s.narration ?? '', caption: s.caption ?? '', emphasis: s.emphasis ?? '',
-          visualLabel: KIND2LABEL[s.visual?.kind] ?? '키워드 스탬프', visual: s.visual,
+          visualLabel: KIND2LABEL[s.visual?.kind] ?? '키워드 스탬프', visual: s.visual, bg: s.bg,
         })));
         setPhase('edit');
       } else if (j.status === 'failed') {
@@ -97,7 +106,7 @@ export default function Create() {
       const keepOriginal = s.visual && KIND2LABEL[(s.visual as any).kind] === s.visualLabel;
       return {
         narration: s.narration, caption: s.caption, emphasis: s.emphasis || undefined,
-        visualLabel: s.visualLabel, visual: keepOriginal ? s.visual : undefined,
+        visualLabel: s.visualLabel, visual: keepOriginal ? s.visual : undefined, bg: s.bg || undefined,
       };
     });
     const script = { ...rawScript.current, template, title: title || topic, hook, scenes: outScenes, approved: true };
@@ -212,8 +221,29 @@ export default function Create() {
                           </button>
                         </div>
                       </div>
+                      <div><label>배경</label>
+                        <button type="button" className="pickbtn" onClick={() => setBgOpen(bgOpen === i ? null : i)}>
+                          <img src={s.bg ? `/ui/${(STOCK_PICK.find((x) => x.path === s.bg) ?? STOCK_PICK[0]).img}.jpg` : `/ui/bgart-${template}.jpg`} alt="" style={{ height: 30 }} />
+                          {s.bg ? (STOCK_PICK.find((x) => x.path === s.bg)?.name ?? '실사') : '채널 아트 (자동 생성)'}
+                          <span style={{ marginLeft: 'auto', color: 'var(--faint)' }}>▾</span>
+                        </button>
+                      </div>
                     </div>
                   </div>
+                  {bgOpen === i && (
+                    <div className="pickgrid" style={{ margin: '0 16px 14px', gridTemplateColumns: 'repeat(auto-fill,minmax(140px,1fr))' }}>
+                      <button type="button" className={`pickitem${!s.bg ? ' sel' : ''}`} onClick={() => { set(i, { bg: undefined }); setBgOpen(null); }}>
+                        <img src={`/ui/bgart-${template}.jpg`} alt="" style={{ aspectRatio: '9/16' }} />
+                        <b>채널 아트</b><small>주제에 맞춰 자동 생성</small>
+                      </button>
+                      {STOCK_PICK.map((x) => (
+                        <button type="button" key={x.path} className={`pickitem${s.bg === x.path ? ' sel' : ''}`} onClick={() => { set(i, { bg: x.path }); setBgOpen(null); }}>
+                          <img src={`/ui/${x.img}.jpg`} alt={x.name} style={{ aspectRatio: '9/16' }} />
+                          <b>{x.name}</b><small>실사 — 채널 톤으로 자동 그레이딩</small>
+                        </button>
+                      ))}
+                    </div>
+                  )}
                   {pickOpen === i && (
                     <div className="pickgrid" style={{ margin: '0 16px 14px' }}>
                       {CARD_PICK.map((c) => (

@@ -28,5 +28,16 @@
   "emphasisStyle": "chip"
  },
  "imageStyle": "abstract",
- "artDirection": "Dark plum investigation mood: torn paper layers, a large magnifying-glass shaped lens flare, magenta accent streaks over deep purple, film-noir contrast."
+ "artDirection": "Dark plum investigation mood: torn paper layers, a large magnifying-glass shaped lens flare, magenta accent streaks over deep purple, film-noir contrast.",
+ "scriptFrame": [
+  "소문 — 떠도는 주장을 그대로 인용해 보여준다 (인용 패널).",
+  "검증 — 확인된 사실을 담담하게 제시한다.",
+  "대조 — 소문과 사실의 간격을 나란히 보여준다 (VS).",
+  "판정 — '사실 / 절반만 사실 / 사실 아님' 중 하나로 명확히 도장을 찍는다.",
+  "행동 — 시청자가 지금 하면 되는 것 한 가지로 닫는다."
+ ],
+ "speechStyle": [
+  "호기심으로 열고, 판정에서 단호해진다",
+  "판정 문장은 짧게 — '판정, OO입니다.'"
+ ]
 }

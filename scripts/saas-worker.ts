@@ -10,7 +10,8 @@ import { readFileSync } from 'node:fs';
 import { loadChannel } from '../src/channel.js';
 import { env } from '../src/config.js';
 import { log } from '../src/log.js';
-import { renderShort, toShortProps } from '../src/pipeline/render.js';
+import { invalidateBundle, renderShort, toShortProps } from '../src/pipeline/render.js';
+import { generateBackground } from '../src/pipeline/image.js';
 import { generateScript, withDisclosure } from '../src/pipeline/script.js';
 import { synthesizeScript } from '../src/pipeline/tts.js';
 import type { Scene, Script } from '../src/types.js';
@@ -28,7 +29,7 @@ function decrypt(b64: string): string {
   return Buffer.concat([d.update(enc), d.final()]).toString('utf8');
 }
 
-type EditorScene = { narration: string; caption: string; emphasis?: string; visualLabel?: string; bgChoice?: string; visual?: Scene['visual'] };
+type EditorScene = { narration: string; caption: string; emphasis?: string; visualLabel?: string; bg?: string; visual?: Scene['visual'] };
 
 /** 에디터의 느슨한 씬을 렌더러 Script 로 변환. 값이 필요한 카드는 안전한 폴백. */
 function toScript(raw: any, signoff?: string): Script {
@@ -39,14 +40,14 @@ function toScript(raw: any, signoff?: string): Script {
     if (s.visual && typeof s.visual === 'object' && 'kind' in s.visual) {
       // LLM 이 생성한 원본 비주얼 — 에디터에서 종류를 안 바꿨으면 그대로 쓴다.
       visual = s.visual;
-      return { narration: s.narration.trim(), caption: s.caption?.trim() || s.narration.slice(0, 20), emphasis, visual };
+      return { narration: s.narration.trim(), caption: s.caption?.trim() || s.narration.slice(0, 20), emphasis, visual, ...(s.bg ? { bg: s.bg } : {}) };
     }
     switch (s.visualLabel) {
       case '카운트업 통계': visual = { kind: 'stat', value: em || s.caption, label: em ? s.caption : '' }; break;
       case '인용 패널': visual = { kind: 'quote', text: s.narration.slice(0, 60), attribution: '' }; break;
       default: visual = { kind: 'keyword', text: em || s.caption };
     }
-    return { narration: s.narration.trim(), caption: s.caption?.trim() || s.narration.slice(0, 20), emphasis, visual };
+    return { narration: s.narration.trim(), caption: s.caption?.trim() || s.narration.slice(0, 20), emphasis, visual, ...(s.bg ? { bg: s.bg } : {}) };
   });
   const last = scenes[scenes.length - 1];
   if (signoff && last && last.narration.includes(signoff.slice(0, 6))) {
@@ -119,13 +120,25 @@ async function processOne(): Promise<boolean> {
     const channel = loadChannel(template);
     const script = toScript(job.script, channel.signoff);
 
+    // 채널 아트 배경 — 잡당 1장 생성 (실패해도 테마 배경으로 진행)
+    let backgroundImage: string | undefined;
+    try {
+      backgroundImage = await generateBackground(job.id, {
+        headline: script.title, summary: job.topic, angle: channel.stance.slice(0, 200),
+        keywords: [], facts: [], caution: [], sources: [],
+      }, channel);
+    } catch (e) {
+      log.warn(`  배경 생성 실패 — 테마 배경으로 진행: ${e instanceof Error ? e.message : e}`);
+    }
+
     const audio = await synthesizeScript(job.id, script, {
       voice: channel.voice, style: channel.voiceStyle, speed: channel.voiceSpeed,
     });
     const props = toShortProps(script, audio, channel.theme, {
-      signoff: channel.signoff, bgmSrc: channel.bgm, bgmVolume: channel.bgmVolume,
+      signoff: channel.signoff, backgroundImage, bgmSrc: channel.bgm, bgmVolume: channel.bgmVolume,
       brand: channel.name, brandTagline: channel.tagline,
     });
+    invalidateBundle(); // 새 오디오·배경이 번들 public 사본에 들어가야 한다
     const videoPath = await renderShort(job.id, props);
 
     // Supabase Storage 업로드 (M1 — 추후 R2 전환)
