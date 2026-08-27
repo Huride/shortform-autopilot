@@ -441,3 +441,16 @@ section{padding:76px 0;border-top:1px solid var(--line)}
 .tplpick .pickitem{padding:10px}
 .tplpick .duo{display:flex;gap:6px;margin-bottom:8px}
 .tplpick .duo img{width:50%;aspect-ratio:9/16;object-fit:cover;border-radius:7px;display:block;margin:0}
+
+/* ==== 로딩 애니메이션 ==== */
+@keyframes apulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.28);opacity:.55}}
+@keyframes ashimmer{from{background-position:-200% 0}to{background-position:200% 0}}
+@keyframes aspin{to{transform:rotate(360deg)}}
+@keyframes adotb{0%,60%,100%{transform:translateY(0);opacity:.35}30%{transform:translateY(-4px);opacity:1}}
+.spark-pulse{display:inline-block;animation:apulse 1.6s ease-in-out infinite;color:var(--accent)}
+.spinner{width:15px;height:15px;flex:none;border:2px solid var(--accent-soft);border-top-color:var(--accent);border-radius:99px;animation:aspin .9s linear infinite;display:inline-block;vertical-align:-2px}
+.skel{height:12px;border-radius:6px;background:linear-gradient(90deg,var(--card2) 25%,var(--line) 50%,var(--card2) 75%);background-size:200% 100%;animation:ashimmer 1.4s linear infinite}
+.dotty span{display:inline-block;animation:adotb 1.2s infinite}
+.dotty span:nth-child(2){animation-delay:.15s}
+.dotty span:nth-child(3){animation-delay:.3s}
+@media (prefers-reduced-motion: reduce){.spark-pulse,.spinner,.skel,.dotty span{animation:none}}

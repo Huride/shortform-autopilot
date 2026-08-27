@@ -73,7 +73,7 @@ export default function Library() {
             {doing.map((j) => (
               <div className="job-row" key={j.id}>
                 <div className="title">{j.topic}<small>{new Date(j.created_at).toLocaleTimeString('ko-KR')}</small></div>
-                <span className="badge amber" style={{ marginLeft: 'auto' }}>{STAGE[j.status] ?? j.status}</span>
+                <span className="badge amber" style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 7 }}><span className="spinner" style={{ width: 11, height: 11 }} />{STAGE[j.status] ?? j.status}</span>
               </div>
             ))}
             {failed.map((j) => (

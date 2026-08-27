@@ -126,10 +126,20 @@ export default function Create() {
           <div className="create-wrap">
             <div className="create-main">
               {phase === 'generating' ? (
-                <div className="card topic-box" style={{ textAlign: 'center', padding: 48 }}>
-                  <div style={{ fontSize: 34, marginBottom: 10 }}>✦</div>
-                  <b style={{ fontSize: 16 }}>에이전트가 대본을 쓰고 있어요…</b>
-                  <p style={{ color: 'var(--sub)', margin: '8px 0 0' }}>“{topic}” — 채널 논조에 맞춰 씬을 구성합니다 (10~30초)</p>
+                <div className="card topic-box" style={{ textAlign: 'center', padding: '40px 40px 28px' }}>
+                  <div className="spark-pulse" style={{ fontSize: 36, marginBottom: 10 }}>✦</div>
+                  <b style={{ fontSize: 16 }}>에이전트가 대본을 쓰고 있어요<span className="dotty"><span>.</span><span>.</span><span>.</span></span></b>
+                  <p style={{ color: 'var(--sub)', margin: '8px 0 22px' }}>“{topic}” — 채널 논조에 맞춰 씬을 구성합니다 (10~30초)</p>
+                  {[0, 1, 2].map((k) => (
+                    <div key={k} className="card" style={{ padding: '14px 16px', marginBottom: 10, textAlign: 'left', opacity: 1 - k * 0.25 }}>
+                      <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 10 }}>
+                        <span className="skel" style={{ width: 54, height: 10 }} />
+                        <span className="skel" style={{ width: 30, height: 10 }} />
+                      </div>
+                      <div className="skel" style={{ width: '92%', marginBottom: 7 }} />
+                      <div className="skel" style={{ width: `${74 - k * 12}%` }} />
+                    </div>
+                  ))}
                 </div>
               ) : (
                 <>

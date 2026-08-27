@@ -55,7 +55,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           <div style={{ fontSize: 11, marginTop: 4 }}>크레딧 <b style={{ color: 'var(--nav-active)' }}>{credits ?? '—'}</b> · 렌더 1편 = 10</div>
         </div>
       </nav>
-      <main className="main">{ready ? children : <div style={{ padding: 40, color: 'var(--faint)' }}>불러오는 중…</div>}</main>
+      <main className="main">{ready ? children : <div style={{ padding: 40, color: 'var(--faint)', display: 'flex', gap: 10, alignItems: 'center' }}><span className="spinner" /> 불러오는 중…</div>}</main>
     </div>
   );
 }
