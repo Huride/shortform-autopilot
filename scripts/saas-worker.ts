@@ -14,6 +14,9 @@ import { log } from '../src/log.js';
 import { invalidateBundle, renderShort, toShortProps } from '../src/pipeline/render.js';
 import { generateBackground } from '../src/pipeline/image.js';
 import { generateScript, withDisclosure } from '../src/pipeline/script.js';
+import { buildBrief } from '../src/collect/select.js';
+import type { Article } from '../src/collect/rss.js';
+import { XMLParser } from 'fast-xml-parser';
 import { synthesizeScript } from '../src/pipeline/tts.js';
 import type { Scene, Script } from '../src/types.js';
 
@@ -67,6 +70,30 @@ async function patchJob(id: string, body: object) {
   await rest(`jobs?id=eq.${id}`, { method: 'PATCH', body: JSON.stringify({ ...body, updated_at: new Date().toISOString() }) });
 }
 
+/**
+ * 주제 기반 실시간 뉴스 수집 — 구글 뉴스 RSS 검색 (키 불필요).
+ * LLM 학습 지식은 시점이 멈춰 있어 최근 사건을 모른다. 수동 주제도
+ * 기사 팩트를 물려야 "실제 부도인데 부도설로 헤지" 같은 사실 오류가 없다.
+ */
+async function searchNews(topic: string): Promise<Article[]> {
+  const url = `https://news.google.com/rss/search?q=${encodeURIComponent(topic)}&hl=ko&gl=KR&ceid=KR:ko`;
+  const res = await fetch(url, { headers: { 'User-Agent': 'shortform-autopilot-worker/1.0' } });
+  if (!res.ok) return [];
+  const xml = await res.text();
+  const parsed = new XMLParser({ ignoreAttributes: false }).parse(xml);
+  const items = parsed?.rss?.channel?.item;
+  const list = Array.isArray(items) ? items : items ? [items] : [];
+  const strip = (s: unknown) => String(s ?? '').replace(/<[^>]+>/g, ' ').replace(/&\w+;/g, ' ').replace(/\s+/g, ' ').trim();
+  return list.slice(0, 6).map((it: any): Article => ({
+    title: strip(it.title),
+    summary: strip(it.description).slice(0, 300),
+    source: strip(it.source?.['#text'] ?? it.source) || 'Google News',
+    lean: 'center',
+    link: String(it.link ?? ''),
+    publishedAt: String(it.pubDate ?? ''),
+  })).filter((a: Article) => a.title);
+}
+
 /** 사용자 채널 브랜딩 — channels 테이블 첫 행의 config {name, signoff, tagline}. */
 async function loadBranding(userId: string): Promise<{ name?: string; signoff?: string; tagline?: string }> {
   const r = await rest(`channels?user_id=eq.${userId}&archived=eq.false&order=created_at.asc&limit=1&select=config`);
@@ -103,8 +130,31 @@ async function generateOne(): Promise<boolean> {
     const brand = await loadBranding(job.user_id);
     const base = loadChannel(template);
     const channel = { ...base, ...(brand.name ? { name: brand.name } : {}), ...(brand.signoff ? { signoff: brand.signoff } : {}), ...(brand.tagline ? { tagline: brand.tagline } : {}) };
-    const generated = withDisclosure(await generateScript({ topic: job.topic, channel }), channel);
-    const script = { ...generated, template, approved: false };
+    // 실시간 사실 수집 → 팩트락. 기사가 없으면(개념·노하우형 주제) 일반 지식 모드.
+    let brief;
+    try {
+      const articles = await searchNews(job.topic);
+      if (articles.length >= 2) {
+        log.info(`  기사 ${articles.length}건 수집 — 팩트 추출`);
+        brief = await buildBrief({
+          headline: job.topic,
+          summary: articles.slice(0, 3).map((a) => a.title).join(' / '),
+          keywords: [], articleIndices: articles.map((_, i) => i),
+          coverage: articles.length, leanCoverage: '', shortformFit: 0,
+          channelFit: 0, freshness: 0, duplicateRisk: 0, totalScore: 0,
+          reason: 'user topic',
+        }, articles, channel);
+      } else {
+        log.info('  관련 기사 없음 — 일반 지식 모드');
+      }
+    } catch (e) {
+      log.warn(`  수집 실패 — 일반 지식 모드: ${e instanceof Error ? e.message : e}`);
+    }
+    const generated = withDisclosure(await generateScript({ topic: job.topic, channel, brief }), channel);
+    const script = {
+      ...generated, template, approved: false,
+      ...(brief ? { factCount: brief.facts.length, newsSources: brief.sources } : {}),
+    };
     await patchJob(job.id, { status: 'scripted', script, error: null });
     log.ok(`  대본 ${generated.scenes.length}씬 — 에디터 대기`);
   } catch (e) {

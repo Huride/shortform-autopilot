@@ -84,6 +84,7 @@ export default function Create() {
     } finally { setBgSearching(false); }
   }
   const [genError, setGenError] = useState('');
+  const [factInfo, setFactInfo] = useState<{ facts: number; sources: number } | null>(null);
   const rawScript = useRef<Record<string, unknown>>({});
   const total = useMemo(() => scenes.reduce((a, s) => a + estimate(s.narration), 0), [scenes]);
 
@@ -97,6 +98,7 @@ export default function Create() {
       if (j.status === 'scripted' && j.script?.scenes) {
         clearInterval(t);
         rawScript.current = j.script;
+        setFactInfo(j.script.factCount ? { facts: j.script.factCount, sources: (j.script.newsSources ?? []).length } : null);
         setTitle(j.script.title ?? topic);
         setHook(j.script.hook ?? '');
         setScenes((j.script.scenes as any[]).map((s) => ({
