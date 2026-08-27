@@ -138,11 +138,28 @@ async function processOne(): Promise<boolean> {
     for (let i = 0; i < (job.script?.scenes?.length ?? 0); i++) {
       const bg = job.script.scenes[i]?.bg;
       if (typeof bg === 'string' && bg.startsWith('http')) {
-        const res = await fetch(bg, { headers: { 'User-Agent': 'autopilot-worker/1.0' } });
-        if (!res.ok) throw new Error(`배경 다운로드 실패 (${res.status}): 씬 ${i + 1}`);
-        const file = `${job.id}-${i}.jpg`;
-        writeFileSync(resolve(dlDir, file), Buffer.from(await res.arrayBuffer()));
-        job.script.scenes[i].bg = `bg/dl/${file}`;
+        let saved = false;
+        // 위키미디어는 버스트에 429 를 던진다 — 백오프 재시도 후, 그래도 실패면
+        // 잡을 죽이지 않고 해당 씬만 채널 아트로 폴백한다.
+        for (let attempt = 0; attempt < 4 && !saved; attempt++) {
+          if (attempt > 0) await new Promise((r) => setTimeout(r, 4000 * attempt));
+          const res = await fetch(bg, {
+            headers: { 'User-Agent': 'shortform-autopilot-worker/1.0 (background fetch; contact: ops@autopilot)' },
+          }).catch(() => null);
+          if (res?.ok) {
+            const file = `${job.id}-${i}.jpg`;
+            writeFileSync(resolve(dlDir, file), Buffer.from(await res.arrayBuffer()));
+            job.script.scenes[i].bg = `bg/dl/${file}`;
+            saved = true;
+          } else if (res && res.status !== 429 && res.status < 500) {
+            break; // 404 등 — 재시도 무의미
+          }
+        }
+        if (!saved) {
+          log.warn(`  씬 ${i + 1} 배경 다운로드 실패 — 채널 아트로 폴백`);
+          delete job.script.scenes[i].bg;
+        }
+        await new Promise((r) => setTimeout(r, 1200)); // 연속 요청 간격
       }
     }
 
