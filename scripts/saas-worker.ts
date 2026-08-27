@@ -67,6 +67,18 @@ async function patchJob(id: string, body: object) {
   await rest(`jobs?id=eq.${id}`, { method: 'PATCH', body: JSON.stringify({ ...body, updated_at: new Date().toISOString() }) });
 }
 
+/** 사용자 채널 브랜딩 — channels 테이블 첫 행의 config {name, signoff, tagline}. */
+async function loadBranding(userId: string): Promise<{ name?: string; signoff?: string; tagline?: string }> {
+  const r = await rest(`channels?user_id=eq.${userId}&archived=eq.false&order=created_at.asc&limit=1&select=config`);
+  const [row] = await r.json();
+  const c = row?.config ?? {};
+  return {
+    name: typeof c.name === 'string' && c.name.trim() ? c.name.trim() : undefined,
+    signoff: typeof c.signoff === 'string' && c.signoff.trim() ? c.signoff.trim() : undefined,
+    tagline: typeof c.tagline === 'string' && c.tagline.trim() ? c.tagline.trim() : undefined,
+  };
+}
+
 async function injectUserKey(userId: string) {
   const kr = await rest(`user_keys?user_id=eq.${userId}&provider=eq.openai&select=key_encrypted`);
   const [krow] = await kr.json();
@@ -88,7 +100,9 @@ async function generateOne(): Promise<boolean> {
   try {
     await injectUserKey(job.user_id);
     const template = job.script?.template ?? 'tpl-critic';
-    const channel = loadChannel(template);
+    const brand = await loadBranding(job.user_id);
+    const base = loadChannel(template);
+    const channel = { ...base, ...(brand.name ? { name: brand.name } : {}), ...(brand.signoff ? { signoff: brand.signoff } : {}), ...(brand.tagline ? { tagline: brand.tagline } : {}) };
     const generated = withDisclosure(await generateScript({ topic: job.topic, channel }), channel);
     const script = { ...generated, template, approved: false };
     await patchJob(job.id, { status: 'scripted', script, error: null });
@@ -144,9 +158,14 @@ async function processOne(): Promise<boolean> {
     };
     const styleKey = job.script?.artStyle as string | undefined;
     const styleOv = styleKey ? ART_STYLES[styleKey] : undefined;
-    const channel = styleOv
-      ? { ...baseChannel, artDirection: styleOv.ad, imageStyle: styleOv.style ?? 'abstract' }
-      : baseChannel;
+    const brand = await loadBranding(job.user_id);
+    const channel = {
+      ...baseChannel,
+      ...(styleOv ? { artDirection: styleOv.ad, imageStyle: styleOv.style ?? ('abstract' as const) } : {}),
+      ...(brand.name ? { name: brand.name } : {}),
+      ...(brand.signoff ? { signoff: brand.signoff } : {}),
+      ...(brand.tagline ? { tagline: brand.tagline } : {}),
+    };
     const script = toScript(job.script, channel.signoff);
 
     // 채널 아트 배경 — 잡당 1장 생성 (실패해도 테마 배경으로 진행)
