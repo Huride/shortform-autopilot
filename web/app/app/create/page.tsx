@@ -18,6 +18,28 @@ const CARD_PICK = [
   { label: '차트', img: 'chart', desc: '추세를 보여줄 때' },
 ];
 const VISUAL_LABELS = CARD_PICK.map((c) => c.label);
+const OPENAI_VOICES = [
+  { id: 'sage', name: 'Sage', d: '차분·신뢰 (기본류)' }, { id: 'alloy', name: 'Alloy', d: '중성·안정' },
+  { id: 'ash', name: 'Ash', d: '단단한 남성' }, { id: 'onyx', name: 'Onyx', d: '낮고 묵직' },
+  { id: 'echo', name: 'Echo', d: '서사적 남성' }, { id: 'fable', name: 'Fable', d: '따뜻한 이야기꾼' },
+  { id: 'nova', name: 'Nova', d: '밝은 여성' }, { id: 'shimmer', name: 'Shimmer', d: '부드러운 여성' },
+  { id: 'coral', name: 'Coral', d: '경쾌한 여성' }, { id: 'ballad', name: 'Ballad', d: '감성적' },
+  { id: 'verse', name: 'Verse', d: '리듬감' },
+];
+const BGMS = [
+  { id: '', name: '채널 기본', file: null },
+  { id: 'bgm/pulse.wav', name: '펄스 — 비트감', file: 'bgm-pulse' },
+  { id: 'bgm/calm.wav', name: '카름 — 차분', file: 'bgm-calm' },
+  { id: 'bgm/land-red-0.mp3', name: 'Redline — 드라이브', file: 'bgm-red' },
+  { id: 'bgm/land-ota-0.mp3', name: 'OTA Anthem — 웅장', file: 'bgm-ota' },
+  { id: 'none', name: 'BGM 없음', file: null },
+];
+let previewAudio: HTMLAudioElement | null = null;
+function playPreview(src: string) {
+  if (previewAudio) { previewAudio.pause(); previewAudio = null; }
+  previewAudio = new Audio(src);
+  previewAudio.play();
+}
 const ART_STYLES = [
   { id: '', name: '채널 기본', desc: '템플릿 고유 아트' },
   { id: 'minimal', name: '미니멀', desc: '큰 도형 · 여백' },
@@ -55,6 +77,20 @@ export default function Create() {
   const [bgOpen, setBgOpen] = useState<number | null>(null);
   const [artStyle, setArtStyle] = useState('');
   const [artOpen, setArtOpen] = useState(false);
+  const [voice, setVoice] = useState('');            // '' = 채널 기본
+  const [voiceProvider, setVoiceProvider] = useState<'openai' | 'elevenlabs'>('openai');
+  const [bgm, setBgm] = useState('');
+  const [voiceOpen, setVoiceOpen] = useState(false);
+  const [elVoices, setElVoices] = useState<{ id: string; name: string; preview: string | null }[]>([]);
+
+  useEffect(() => {
+    const sb = getSupabase(); if (!sb) return;
+    sb.auth.getSession().then(({ data: { session } }) => {
+      if (!session) return;
+      fetch('/api/elvoices', { headers: { Authorization: `Bearer ${session.access_token}` } })
+        .then((r) => r.json()).then((j) => { if (j.ok) setElVoices(j.voices); }).catch(() => {});
+    });
+  }, []);
   const [bgQuery, setBgQuery] = useState('');
   const [bgResults, setBgResults] = useState<{ url: string; thumb: string; title: string; license: string }[]>([]);
   const [bgSearching, setBgSearching] = useState(false);
@@ -101,6 +137,8 @@ export default function Create() {
       setTitle(j.script.title ?? j.topic);
       setHook(j.script.hook ?? '');
       setArtStyle(j.script.artStyle ?? '');
+      setVoice(j.script.voice ?? ''); setVoiceProvider(j.script.voiceProvider ?? 'openai');
+      setBgm(j.script.bgm ?? '');
       setScenes((j.script.scenes as any[]).map((s) => ({
         narration: s.narration ?? '', caption: s.caption ?? '', emphasis: s.emphasis ?? '',
         visualLabel: KIND2LABEL[s.visual?.kind] ?? '키워드 스탬프', visual: s.visual, bg: s.bg,
@@ -163,7 +201,13 @@ export default function Create() {
         visualLabel: s.visualLabel, visual: keepOriginal ? s.visual : undefined, bg: s.bg || undefined,
       };
     });
-    const script = { ...rawScript.current, template, title: title || topic, hook, scenes: outScenes, artStyle: artStyle || undefined, approved: true };
+    const script = {
+      ...rawScript.current, template, title: title || topic, hook, scenes: outScenes,
+      artStyle: artStyle || undefined,
+      voice: voice || undefined, voiceProvider: voice ? voiceProvider : undefined,
+      bgm: bgm || undefined,
+      approved: true,
+    };
     const { error } = await sb.from('jobs').update({ script, status: 'scripted', error: null, video_url: null }).eq('id', jobId);
     if (error) { alert('저장 실패: ' + error.message); setBusy(false); return; }
     await sb.from('profiles').update({ credits: (prof!.credits as number) - 10 }).eq('id', session.user.id);
@@ -362,6 +406,41 @@ export default function Create() {
                 ) : (
                   <p style={{ fontSize: 11, color: 'var(--faint)', margin: '10px 0 0' }}>'채널 아트' 배경인 씬 {scenes.filter((s) => !s.bg).length}개에 적용 — 렌더 때 주제에 맞춰 이 스타일로 새로 그립니다.</p>
                 )}
+              </div>
+              <div className="card" style={{ padding: '14px 16px', marginBottom: 14 }}>
+                <label>목소리</label>
+                <button type="button" className="pickbtn" onClick={() => setVoiceOpen(!voiceOpen)}>
+                  🎙 {voice ? (voiceProvider === 'elevenlabs' ? (elVoices.find((v) => v.id === voice)?.name ?? 'ElevenLabs') : (OPENAI_VOICES.find((v) => v.id === voice)?.name ?? voice)) : '채널 기본'}
+                  <span style={{ marginLeft: 'auto', color: 'var(--faint)' }}>▾</span>
+                </button>
+                {voiceOpen && (
+                  <div style={{ marginTop: 8, maxHeight: 260, overflow: 'auto', border: '1px solid var(--line)', borderRadius: 10 }}>
+                    <button type="button" className="nav-item" style={{ width: '100%', color: 'var(--ink)' }} onClick={() => { setVoice(''); setVoiceOpen(false); }}>채널 기본</button>
+                    {OPENAI_VOICES.map((v) => (
+                      <div key={v.id} className="nav-item" style={{ width: '100%', color: voice === v.id && voiceProvider === 'openai' ? 'var(--accent)' : 'var(--ink)', cursor: 'pointer' }}
+                        onClick={() => { setVoice(v.id); setVoiceProvider('openai'); setVoiceOpen(false); }}>
+                        <span className="play" onClick={(e) => { e.stopPropagation(); playPreview(`/ui/voice-${v.id}.mp3`); }}>▶</span>
+                        <span>{v.name} <small style={{ color: 'var(--faint)' }}>{v.d}</small></span>
+                      </div>
+                    ))}
+                    {elVoices.length > 0 && <div className="nav-sec">ElevenLabs</div>}
+                    {elVoices.map((v) => (
+                      <div key={v.id} className="nav-item" style={{ width: '100%', color: voice === v.id && voiceProvider === 'elevenlabs' ? 'var(--accent)' : 'var(--ink)', cursor: 'pointer' }}
+                        onClick={() => { setVoice(v.id); setVoiceProvider('elevenlabs'); setVoiceOpen(false); }}>
+                        {v.preview ? <span className="play" onClick={(e) => { e.stopPropagation(); playPreview(v.preview!); }}>▶</span> : <span style={{ width: 26 }} />}
+                        <span>{v.name}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <label style={{ marginTop: 12 }}>BGM</label>
+                {BGMS.map((b) => (
+                  <div key={b.id || b.name} className="nav-item" style={{ width: '100%', padding: '6px 8px', color: bgm === b.id ? 'var(--accent)' : 'var(--ink)', cursor: 'pointer' }}
+                    onClick={() => setBgm(b.id)}>
+                    {b.file ? <span className="play" onClick={(e) => { e.stopPropagation(); playPreview(`/ui/${b.file}.mp3`); }}>▶</span> : <span style={{ width: 26 }} />}
+                    <span style={{ fontSize: 13 }}>{b.name}</span>
+                  </div>
+                ))}
               </div>
               <div className="card" style={{ padding: '16px 18px', marginBottom: 14 }}>
                 <div className="sum-row"><span>씬</span><b>{scenes.length}개</b></div>

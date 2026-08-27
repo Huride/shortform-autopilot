@@ -181,6 +181,20 @@ async function processOne(): Promise<boolean> {
   try {
     await injectUserKey(job.user_id);
 
+    // 잡 단위 TTS 설정 — 이전 잡의 env 가 남지 않게 매번 리셋
+    delete process.env.TTS_PROVIDER;
+    delete process.env.ELEVENLABS_API_KEY;
+    delete process.env.ELEVENLABS_VOICE_ID;
+    const pickedVoice = job.script?.voice as string | undefined;
+    if (pickedVoice && job.script?.voiceProvider === 'elevenlabs') {
+      const er = await rest(`user_keys?user_id=eq.${job.user_id}&provider=eq.elevenlabs&select=key_encrypted`);
+      const [erow] = await er.json();
+      if (!erow) throw new Error('설정에서 ElevenLabs 키를 먼저 연결해주세요.');
+      process.env.TTS_PROVIDER = 'elevenlabs';
+      process.env.ELEVENLABS_API_KEY = decrypt(erow.key_encrypted);
+      process.env.ELEVENLABS_VOICE_ID = pickedVoice;
+    }
+
     // 에디터에서 검색·선택한 원격 실사 배경 → 로컬로 내려받아 상대 경로로 치환
     // (렌더러의 채널 톤 그레이딩은 scene.bg 경로에 자동 적용된다)
     const dlDir = resolve('remotion/public/bg/dl');
@@ -233,7 +247,10 @@ async function processOne(): Promise<boolean> {
       ...(brand.name ? { name: brand.name } : {}),
       ...(brand.signoff ? { signoff: brand.signoff } : {}),
       ...(brand.tagline ? { tagline: brand.tagline } : {}),
+      ...(pickedVoice ? { voice: pickedVoice } : {}),
     };
+    const pickedBgm = job.script?.bgm as string | undefined;
+    const bgmSrc = pickedBgm === 'none' ? undefined : pickedBgm || channel.bgm;
     const script = toScript(job.script, channel.signoff);
 
     // 채널 아트 배경 — '채널 아트' 를 쓰는 씬이 있을 때만 잡당 1장 생성
@@ -254,7 +271,7 @@ async function processOne(): Promise<boolean> {
       voice: channel.voice, style: channel.voiceStyle, speed: channel.voiceSpeed,
     });
     const props = toShortProps(script, audio, channel.theme, {
-      signoff: channel.signoff, backgroundImage, bgmSrc: channel.bgm, bgmVolume: channel.bgmVolume,
+      signoff: channel.signoff, backgroundImage, bgmSrc, bgmVolume: channel.bgmVolume,
       brand: channel.name, brandTagline: channel.tagline,
     });
     invalidateBundle(); // 새 오디오·배경이 번들 public 사본에 들어가야 한다

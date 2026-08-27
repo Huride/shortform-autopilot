@@ -9,18 +9,26 @@ export default function Settings() {
   const [brandState, setBrandState] = useState<'idle' | 'saving' | 'ok'>('idle');
   const [status, setStatus] = useState<'none' | 'saving' | 'ok' | 'error'>('none');
   const [existing, setExisting] = useState<string | null>(null);
+  const [elKey, setElKey] = useState('');
+  const [elStatus, setElStatus] = useState<'none' | 'saving' | 'ok' | 'error'>('none');
+  const [elExisting, setElExisting] = useState(false);
   const [msg, setMsg] = useState('');
 
   useEffect(() => {
     const sb = getSupabase();
     if (!sb) return;
-    sb.from('user_keys').select('provider, validated_at').eq('provider', 'openai').maybeSingle()
-      .then(({ data }) => { if (data?.validated_at) setExisting(new Date(data.validated_at).toLocaleDateString('ko-KR')); });
+    sb.from('user_keys').select('provider, validated_at')
+      .then(({ data }) => {
+        for (const k of data ?? []) {
+          if (k.provider === 'openai' && k.validated_at) setExisting(new Date(k.validated_at).toLocaleDateString('ko-KR'));
+          if (k.provider === 'elevenlabs') setElExisting(true);
+        }
+      });
     sb.from('channels').select('id, config').eq('archived', false).order('created_at').limit(1).maybeSingle()
       .then(({ data }) => {
         if (data) { setBrandRow(data.id); setBrand({ name: data.config?.name ?? '', signoff: data.config?.signoff ?? '', tagline: data.config?.tagline ?? '' }); }
       });
-  }, [status]);
+  }, [status, elStatus]);
 
   async function saveBrand(e: React.FormEvent) {
     e.preventDefault();
@@ -35,6 +43,20 @@ export default function Settings() {
     }
     setBrandState('ok');
     setTimeout(() => setBrandState('idle'), 2500);
+  }
+
+  async function saveEl(e: React.FormEvent) {
+    e.preventDefault();
+    const sb = getSupabase(); if (!sb) return;
+    setElStatus('saving');
+    const { data: { session } } = await sb.auth.getSession();
+    const res = await fetch('/api/keys', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token}` },
+      body: JSON.stringify({ provider: 'elevenlabs', key: elKey.trim() }),
+    });
+    const j = await res.json();
+    if (j.ok) { setElStatus('ok'); setElKey(''); } else setElStatus('error');
   }
 
   async function save(e: React.FormEvent) {
@@ -84,7 +106,16 @@ export default function Settings() {
           <div className="card set-card">
             <h3>플랜</h3>
             <p className="sub">무료 플랜 — 가입 크레딧 20 (영상 2편). 결제는 곧 열려요.</p>
-            <div className="key-row"><div><b>ElevenLabs</b><span className="mono" style={{ color: 'var(--faint)' }}>프리미엄 보이스 (선택)</span></div><span className="badge dim">준비 중</span></div>
+            <div className="key-row" style={{ display: 'block' }}>
+              <b>ElevenLabs {elExisting && <span className="badge ok">● 연결됨</span>}</b>
+              <span className="mono" style={{ color: 'var(--faint)', display: 'block', marginBottom: 8 }}>프리미엄 보이스 — 연결하면 영상 만들기에서 EL 보이스 선택 가능</span>
+              <form onSubmit={saveEl} style={{ display: 'flex', gap: 8 }}>
+                <input type="password" placeholder={elExisting ? '새 키로 교체' : 'xi-...'} value={elKey} onChange={(e) => setElKey(e.target.value)} required />
+                <button className="btn primary" style={{ flex: 'none' }} disabled={elStatus === 'saving'}>{elStatus === 'saving' ? '검증 중…' : elExisting ? '교체' : '연결'}</button>
+              </form>
+              {elStatus === 'error' && <p style={{ color: 'var(--warn)', fontSize: 12, marginTop: 6 }}>ElevenLabs가 키를 거부했어요.</p>}
+              {elStatus === 'ok' && <p style={{ color: 'var(--ok)', fontSize: 12, marginTop: 6 }}>✓ 연결 완료</p>}
+            </div>
           </div>
         </div>
       </div>

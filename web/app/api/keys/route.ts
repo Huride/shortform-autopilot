@@ -22,17 +22,19 @@ export async function POST(req: NextRequest) {
   if (authErr || !userData.user) return NextResponse.json({ ok: false, error: 'unauthorized' }, { status: 401 });
 
   const { provider, key } = await req.json();
-  if (provider !== 'openai' || typeof key !== 'string' || !key.startsWith('sk-')) {
+  if (!['openai', 'elevenlabs'].includes(provider) || typeof key !== 'string' || key.length < 10) {
     return NextResponse.json({ ok: false, error: 'invalid_key' }, { status: 400 });
   }
 
-  // 키 검증 — 모델 목록 조회가 되면 유효
-  const check = await fetch('https://api.openai.com/v1/models', { headers: { Authorization: `Bearer ${key}` } });
+  // 키 검증 — 프로바이더별 가벼운 인증 호출
+  const check = provider === 'openai'
+    ? await fetch('https://api.openai.com/v1/models', { headers: { Authorization: `Bearer ${key}` } })
+    : await fetch('https://api.elevenlabs.io/v1/user', { headers: { 'xi-api-key': key } });
   if (!check.ok) return NextResponse.json({ ok: false, error: 'key_rejected' }, { status: 400 });
 
   const { error } = await admin.from('user_keys').upsert({
     user_id: userData.user.id,
-    provider: 'openai',
+    provider,
     key_encrypted: encrypt(key),
     validated_at: new Date().toISOString(),
     last_error: null,
