@@ -26,14 +26,6 @@ const ART_STYLES = [
   { id: 'watercolor', name: '수채화', desc: '번짐 · 종이 질감' },
   { id: 'neon', name: '네온 테크', desc: '빛나는 회로선' },
 ];
-const STOCK_PICK = [
-  { path: 'bg/stock/applestore.jpg', img: 'stock-applestore', name: '애플스토어' },
-  { path: 'bg/stock/noodle-shelf.jpg', img: 'stock-noodle-shelf', name: '라면 매대' },
-  { path: 'bg/stock/mart-aisle.jpg', img: 'stock-mart-aisle', name: '마트 통로' },
-  { path: 'bg/stock/pylon.jpg', img: 'stock-pylon', name: '송전탑 노을' },
-  { path: 'bg/stock/coins.jpg', img: 'stock-coins', name: '동전' },
-  { path: 'bg/stock/nokia.jpg', img: 'stock-nokia', name: '피처폰' },
-];
 const TEMPLATES = [
   { id: 'tpl-critic', name: '소비자 비판형', emph: 'box', emphName: '라벨 강조' },
   { id: 'tpl-number', name: '넘버 앵커형', emph: 'glow', emphName: '네온 강조' },
@@ -65,6 +57,21 @@ export default function Create() {
   const [bgQuery, setBgQuery] = useState('');
   const [bgResults, setBgResults] = useState<{ url: string; thumb: string; title: string; license: string }[]>([]);
   const [bgSearching, setBgSearching] = useState(false);
+
+  const [uploading, setUploading] = useState<number | null>(null);
+
+  async function uploadBg(i: number, file: File) {
+    const sb = getSupabase(); if (!sb) return;
+    const { data: { session } } = await sb.auth.getSession(); if (!session) return;
+    setUploading(i);
+    try {
+      const fd = new FormData(); fd.append('file', file);
+      const r = await fetch('/api/upload', { method: 'POST', headers: { Authorization: `Bearer ${session.access_token}` }, body: fd });
+      const j = await r.json();
+      if (j.ok) { set(i, { bg: j.url }); setBgOpen(null); }
+      else alert('업로드 실패: ' + j.error);
+    } finally { setUploading(null); }
+  }
 
   async function searchStock() {
     if (!bgQuery.trim()) return;
@@ -246,8 +253,8 @@ export default function Create() {
                       </div>
                       <div><label>배경</label>
                         <button type="button" className="pickbtn" onClick={() => setBgOpen(bgOpen === i ? null : i)}>
-                          <img src={!s.bg ? `/ui/bgart-${template}.jpg` : s.bg.startsWith('http') ? s.bg.replace('/1600px-', '/480px-') : `/ui/${(STOCK_PICK.find((x) => x.path === s.bg) ?? STOCK_PICK[0]).img}.jpg`} alt="" style={{ height: 30 }} />
-                          {!s.bg ? '채널 아트 (자동 생성)' : s.bg.startsWith('http') ? '실사 (검색)' : (STOCK_PICK.find((x) => x.path === s.bg)?.name ?? '실사')}
+                          <img src={!s.bg ? (artStyle ? `/ui/style-${artStyle}.jpg` : `/ui/bgart-${template}.jpg`) : s.bg.startsWith('http') ? s.bg.replace('/1600px-', '/480px-') : `/ui/bgart-${template}.jpg`} alt="" style={{ height: 30 }} />
+                          {!s.bg ? `생성 — ${(ART_STYLES.find((a) => a.id === artStyle) ?? ART_STYLES[0]).name}` : s.bg.includes('/assets/') ? '내 이미지' : s.bg.startsWith('http') ? '실사 (검색)' : '실사'}
                           <span style={{ marginLeft: 'auto', color: 'var(--faint)' }}>▾</span>
                         </button>
                       </div>
@@ -256,15 +263,18 @@ export default function Create() {
                   {bgOpen === i && (
                     <div className="pickgrid" style={{ margin: '0 16px 14px', gridTemplateColumns: 'repeat(auto-fill,minmax(140px,1fr))' }}>
                       <button type="button" className={`pickitem${!s.bg ? ' sel' : ''}`} onClick={() => { set(i, { bg: undefined }); setBgOpen(null); }}>
-                        <img src={`/ui/bgart-${template}.jpg`} alt="" style={{ aspectRatio: '9/16' }} />
-                        <b>채널 아트</b><small>주제에 맞춰 자동 생성</small>
+                        <img src={artStyle ? `/ui/style-${artStyle}.jpg` : `/ui/bgart-${template}.jpg`} alt="" style={{ aspectRatio: '9/16' }} />
+                        <b>생성 — {(ART_STYLES.find((a) => a.id === artStyle) ?? ART_STYLES[0]).name}</b>
+                        <small>렌더 때 이 주제로 새로 그려요 (스타일은 우측에서 변경)</small>
                       </button>
-                      {STOCK_PICK.map((x) => (
-                        <button type="button" key={x.path} className={`pickitem${s.bg === x.path ? ' sel' : ''}`} onClick={() => { set(i, { bg: x.path }); setBgOpen(null); }}>
-                          <img src={`/ui/${x.img}.jpg`} alt={x.name} style={{ aspectRatio: '9/16' }} />
-                          <b>{x.name}</b><small>실사 — 채널 톤으로 자동 그레이딩</small>
-                        </button>
-                      ))}
+                      <label className="pickitem" style={{ cursor: 'pointer' }}>
+                        <span style={{ aspectRatio: '9/16', display: 'grid', placeItems: 'center', background: 'var(--card2)', borderRadius: 7, marginBottom: 6, fontSize: 26 }}>
+                          {uploading === i ? <span className="spinner" /> : '📤'}
+                        </span>
+                        <b>내 이미지</b><small>JPG·PNG 업로드 (8MB)</small>
+                        <input type="file" accept="image/jpeg,image/png,image/webp" style={{ display: 'none' }}
+                          onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadBg(i, f); e.target.value = ''; }} />
+                      </label>
                       <div style={{ gridColumn: '1 / -1', display: 'flex', gap: 8, alignItems: 'center' }}>
                         <input placeholder="실사 검색 — 영어 키워드가 정확해요 (예: subway station)" value={bgQuery}
                           onChange={(e) => setBgQuery(e.target.value)}
