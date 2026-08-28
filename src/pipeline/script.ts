@@ -187,7 +187,10 @@ ${VISUAL_RULES}
 const GENERIC_SYSTEM = `You are a script writer for informational short-form vertical video.
 
 ${CRAFT}
-- Never state numbers, years, or proper nouns you are not sure of. Assert only what you know.`;
+- Never state numbers, years, or proper nouns you are not sure of. Assert only what you know.
+- Land the ending: the final scene delivers a one-sentence conclusion that resolves
+  the video's question — never a side detail, a new question, or a vague "두고 봐야"
+  fade-out. If the hook asked something, the ending answers it.`;
 
 /**
  * Opinionated/commentary channels (channel config present). Named for its origin
@@ -247,6 +250,19 @@ The final scene MUST end with the channel sign-off, word for word: "${channel.si
    Marking the boundary between confirmed and unconfirmed is what makes the
    channel trustworthy. Never blur it.
 4. **Where it stands (one scene)**: the current state of play.${signoff}`}
+
+## Land the ending — no vague fade-outs
+The last content scene (right before any sign-off) must deliver **a conclusion that
+resolves the one question** — a verdict the viewer can repeat in one sentence:
+a judgment, a takeaway, a do-this, or the direct answer to the hook.
+- If the hook asked a question, the ending answers it in plain words.
+- Never end on a side detail, a brand-new question, or a lone "지켜봐야 합니다" /
+  "과연 어떻게 될까요?". Open endings are a failure here, not a style.
+- If the facts genuinely don't settle it, then SAY that as the verdict — state
+  exactly what is confirmed and what single thing would decide it. That contrast
+  is a conclusion; hedging mush is not.
+- For arc structures ending in 여운/lingering beats: the 여운 comes AFTER the
+  conclusion lands, never instead of it.
 
 ## Titles — pick per issue type
 - **Issue-form** (when the matter is still contested): "X announced — the real
