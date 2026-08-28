@@ -212,3 +212,25 @@ payment_events id, pg_event_id UNIQUE, user_id, type, payload JSONB, at  -- 웹�
 - 주간 롱폼·카드뉴스 (Phase 2 프리미엄 재료)
 - 템플릿/테마 마켓, 팀 기능, 다국어 UI
 - 실시간 협업 편집 — 채팅 수정 + 재렌더로 충분
+
+---
+
+## 수익화·온보딩 정책 v2 (2026-08-28 결정)
+
+경쟁 서비스(Mirr/미리내 AI) 분석에서 차용. 근거: 워터마크 무료 플랜 = 결과물 자체가 광고(바이럴 루프), 크레딧 충전 = 소진 시 이탈 대신 추가 매출.
+
+### 워터마크
+- **무료 플랜**: 모든 렌더에 "⚡ made with Autopilot" 워터마크 (우하단, `serviceWatermark` prop)
+- **제거 과금**: 렌더당 +5크레딧 (기본 10 + 5 = 15). 에디터 렌더 버튼 위 체크박스
+- **구독 중**: 항상 자동 제거 (`profiles.plan !== 'free'` — 워커가 판단, 소스 오브 트루스는 DB 플랜)
+
+### 크레딧 충전 (결제 연동 시 활성화)
+- 100cr ₩4,900 / 300cr ₩12,900 / 1,000cr ₩39,000
+- 구독과 별개의 일회성 충전. 설정 페이지에 UI 스텁 반영됨 ("충전 준비 중")
+
+### 스타일 학습 온보딩
+- 사용자가 기존 채널 썸네일·게시물 1~3장 업로드 → `/api/style-learn` (gpt-4o-mini 비전, 사용자 키)
+- 추출: `{bg, accent, mood, artDirection}` → `channels.config.styleProfile` 저장
+- 에디터: 색상 톤 피커에 "🎨 내 브랜드" 스와치, 아트 스타일에 "내 브랜드" 옵션(artStyle='brand')
+- 워커: artStyle='brand' → styleProfile.artDirection 을 생성 프롬프트로 사용
+- artDirection 은 스타일 특성만 추출(구체 사물·구도 금지) — 배경 다양성 유지 원칙 준수

@@ -114,6 +114,10 @@ export default function Create() {
   const [regenOpen, setRegenOpen] = useState(false);
   const [regenNote, setRegenNote] = useState('');
   const [refUrls, setRefUrls] = useState<string[]>(['']);
+  const [plan, setPlan] = useState('free');
+  const [noWm, setNoWm] = useState(false); // 무료 플랜: 워터마크 제거 옵션 (+5cr)
+  const [styleProfile, setStyleProfile] = useState<{ bg: string; accent: string; mood?: string; artDirection?: string } | null>(null);
+  const fullConfig = useRef<Record<string, unknown>>({}); // 브랜딩 저장 시 styleProfile 등 다른 config 를 지우지 않기 위한 원본
 
   useEffect(() => {
     const sb = getSupabase(); if (!sb) return;
@@ -124,8 +128,14 @@ export default function Create() {
     });
     sb.from('channels').select('id, config').eq('archived', false).order('created_at').limit(1).maybeSingle()
       .then(({ data }) => {
-        if (data) { setBrandRow(data.id); setBrand({ name: data.config?.name ?? '', signoff: data.config?.signoff ?? '', tagline: data.config?.tagline ?? '' }); }
+        if (data) {
+          setBrandRow(data.id);
+          fullConfig.current = data.config ?? {};
+          setBrand({ name: data.config?.name ?? '', signoff: data.config?.signoff ?? '', tagline: data.config?.tagline ?? '' });
+          if (data.config?.styleProfile?.bg) setStyleProfile(data.config.styleProfile);
+        }
       });
+    sb.from('profiles').select('plan').maybeSingle().then(({ data }) => { if (data?.plan) setPlan(data.plan); });
   }, []);
   const [bgQuery, setBgQuery] = useState('');
   const [bgResults, setBgResults] = useState<{ url: string; thumb: string; title: string; license: string }[]>([]);
@@ -192,6 +202,7 @@ export default function Create() {
       const oc = j.script.outro ?? {};
       setOutroOn(oc.enabled !== false); setOutroTagline(oc.tagline !== false); setOutroBg(oc.bg ?? '');
       setWatermark(j.script.watermark !== false);
+      setNoWm(j.script.noWatermark === true);
       setScenes((j.script.scenes as any[]).map((s) => ({
         narration: s.narration ?? '', caption: s.caption ?? '', emphasis: s.emphasis ?? '',
         visualLabel: KIND2LABEL[s.visual?.kind] ?? '키워드 스탬프', visual: s.visual, bg: s.bg,
@@ -259,11 +270,12 @@ export default function Create() {
       colors: colors ?? undefined,
       outro: { enabled: outroOn, tagline: outroTagline, bg: (outroOn && outroBg) || undefined },
       watermark,
+      noWatermark: (plan === 'free' && noWm) || undefined,
     };
   }
 
   async function saveBranding(sb: NonNullable<ReturnType<typeof getSupabase>>, userId: string) {
-    const bconfig = { name: brand.name.trim(), signoff: brand.signoff.trim(), tagline: brand.tagline.trim() };
+    const bconfig = { ...fullConfig.current, name: brand.name.trim(), signoff: brand.signoff.trim(), tagline: brand.tagline.trim() };
     if (brandRow) await sb.from('channels').update({ config: bconfig }).eq('id', brandRow);
     else if (bconfig.name || bconfig.signoff || bconfig.tagline) {
       const { data: nb } = await sb.from('channels').insert({ user_id: userId, config: bconfig }).select('id').single();
@@ -305,14 +317,22 @@ export default function Create() {
     if (!session) { location.href = '/login'; return; }
     setBusy(true);
     await saveBranding(sb, session.user.id);
+    const cost = 10 + (plan === 'free' && noWm ? 5 : 0);
     const { data: prof } = await sb.from('profiles').select('credits').eq('id', session.user.id).single();
-    if ((prof?.credits ?? 0) < 10) { alert('크레딧이 부족합니다.'); setBusy(false); return; }
+    if ((prof?.credits ?? 0) < cost) { alert('크레딧이 부족합니다.'); setBusy(false); return; }
     const script = { ...buildScript(), approved: true };
     const { error } = await sb.from('jobs').update({ script, status: 'scripted', error: null, video_url: null }).eq('id', jobId);
     if (error) { alert('저장 실패: ' + error.message); setBusy(false); return; }
-    await sb.from('profiles').update({ credits: (prof!.credits as number) - 10 }).eq('id', session.user.id);
+    await sb.from('profiles').update({ credits: (prof!.credits as number) - cost }).eq('id', session.user.id);
     location.href = '/app/library?tab=1';
   }
+
+  // 스타일 학습을 마친 사용자는 '내 브랜드' 아트 스타일을 고를 수 있다 (워커가 artDirection 으로 사용)
+  const artOptions = useMemo(() => [
+    ART_STYLES[0]!,
+    ...(styleProfile?.artDirection ? [{ id: 'brand', name: '🎨 내 브랜드', desc: styleProfile.mood || '학습된 스타일' }] : []),
+    ...ART_STYLES.slice(1),
+  ], [styleProfile]);
 
   const set = (i: number, patch: Partial<Scene>) => setScenes((p) => p.map((s, j) => (j === i ? { ...s, ...patch } : s)));
   const remove = (i: number) => setScenes((p) => p.filter((_, j) => j !== i));
@@ -435,8 +455,12 @@ export default function Create() {
                       </div>
                       <div><label>배경</label>
                         <button type="button" className="pickbtn" onClick={() => setBgOpen(bgOpen === i ? null : i)}>
-                          <img src={!s.bg ? (artStyle ? `/ui/style-${artStyle}.jpg` : `/ui/bgart-${template}.jpg`) : s.bg.startsWith('http') ? s.bg.replace('/1600px-', '/480px-') : `/ui/bgart-${template}.jpg`} alt="" style={{ height: 30 }} />
-                          {!s.bg ? `생성 — ${(ART_STYLES.find((a) => a.id === artStyle) ?? ART_STYLES[0]).name}` : s.bg === 'gen' ? '✨ 씬 전용 생성' : s.bg.includes('/assets/') ? '내 이미지' : s.bg.startsWith('http') ? '실사 (검색)' : '실사'}
+                          {!s.bg && artStyle === 'brand' && styleProfile ? (
+                            <span style={{ width: 18, height: 30, borderRadius: 4, background: `linear-gradient(160deg, ${styleProfile.bg} 55%, ${styleProfile.accent})`, flexShrink: 0 }} />
+                          ) : (
+                            <img src={!s.bg ? (artStyle && artStyle !== 'brand' ? `/ui/style-${artStyle}.jpg` : `/ui/bgart-${template}.jpg`) : s.bg.startsWith('http') ? s.bg.replace('/1600px-', '/480px-') : `/ui/bgart-${template}.jpg`} alt="" style={{ height: 30 }} />
+                          )}
+                          {!s.bg ? `생성 — ${(artOptions.find((a) => a.id === artStyle) ?? artOptions[0]!).name}` : s.bg === 'gen' ? '✨ 씬 전용 생성' : s.bg.includes('/assets/') ? '내 이미지' : s.bg.startsWith('http') ? '실사 (검색)' : '실사'}
                           <span style={{ marginLeft: 'auto', color: 'var(--faint)' }}>▾</span>
                         </button>
                       </div>
@@ -445,10 +469,14 @@ export default function Create() {
                   {bgOpen === i && (
                     <div className="pickgrid" style={{ margin: '0 16px 14px', gridTemplateColumns: 'repeat(auto-fill,minmax(140px,1fr))' }}>
                       <div style={{ gridColumn: '1 / -1', fontSize: 11.5, color: 'var(--sub)', fontWeight: 700 }}>✦ 생성 — 주제에 맞춰 새로 그립니다. 스타일을 고르세요 (영상 전체 공통)</div>
-                      {ART_STYLES.map((a) => (
+                      {artOptions.map((a) => (
                         <button type="button" key={a.id || 'default'} className={`pickitem${!s.bg && artStyle === a.id ? ' sel' : ''}`}
                           onClick={() => { setArtStyle(a.id); set(i, { bg: undefined }); setBgOpen(null); }}>
-                          <img src={a.id ? `/ui/style-${a.id}.jpg` : `/ui/bgart-${template}.jpg`} alt={a.name} style={{ aspectRatio: '9/16' }} />
+                          {a.id === 'brand' && styleProfile ? (
+                            <span style={{ display: 'block', aspectRatio: '9/16', borderRadius: 7, marginBottom: 6, background: `linear-gradient(160deg, ${styleProfile.bg} 55%, ${styleProfile.accent})` }} />
+                          ) : (
+                            <img src={a.id ? `/ui/style-${a.id}.jpg` : `/ui/bgart-${template}.jpg`} alt={a.name} style={{ aspectRatio: '9/16' }} />
+                          )}
                           <b>{a.name}</b><small>{a.desc}</small>
                         </button>
                       ))}
@@ -505,16 +533,24 @@ export default function Create() {
               <div className="card" style={{ padding: '14px 16px', marginBottom: 14 }}>
                 <label>생성 배경 아트 스타일</label>
                 <button type="button" className="pickbtn" onClick={() => setArtOpen(!artOpen)}>
-                  <img src={artStyle ? `/ui/style-${artStyle}.jpg` : `/ui/bgart-${template}.jpg`} alt="" />
-                  {(ART_STYLES.find((a) => a.id === artStyle) ?? ART_STYLES[0]).name}
+                  {artStyle === 'brand' && styleProfile ? (
+                    <span style={{ width: 26, height: 26, borderRadius: 7, background: `linear-gradient(135deg, ${styleProfile.bg} 60%, ${styleProfile.accent})`, flexShrink: 0 }} />
+                  ) : (
+                    <img src={artStyle ? `/ui/style-${artStyle}.jpg` : `/ui/bgart-${template}.jpg`} alt="" />
+                  )}
+                  {(artOptions.find((a) => a.id === artStyle) ?? artOptions[0]!).name}
                   <span style={{ marginLeft: 'auto', color: 'var(--faint)' }}>▾</span>
                 </button>
                 {artOpen && (
                   <div className="pickgrid" style={{ marginTop: 10, gridTemplateColumns: 'repeat(2,1fr)' }}>
-                    {ART_STYLES.map((a) => (
+                    {artOptions.map((a) => (
                       <button type="button" key={a.id} className={`pickitem${artStyle === a.id ? ' sel' : ''}`}
                         onClick={() => { setArtStyle(a.id); setArtOpen(false); }}>
-                        <img src={a.id ? `/ui/style-${a.id}.jpg` : `/ui/bgart-${template}.jpg`} alt={a.name} />
+                        {a.id === 'brand' && styleProfile ? (
+                          <span style={{ display: 'block', aspectRatio: '9/16', borderRadius: 7, marginBottom: 6, background: `linear-gradient(160deg, ${styleProfile.bg} 55%, ${styleProfile.accent})` }} />
+                        ) : (
+                          <img src={a.id ? `/ui/style-${a.id}.jpg` : `/ui/bgart-${template}.jpg`} alt={a.name} />
+                        )}
                         <b>{a.name}</b><small>{a.desc}</small>
                       </button>
                     ))}
@@ -532,13 +568,21 @@ export default function Create() {
                   <span style={{ display: 'inline-block', width: 22, height: 22, borderRadius: 6, background: (colors ?? TPL_COLORS[template]).bg, border: '1px solid var(--line)', position: 'relative', flexShrink: 0 }}>
                     <span style={{ position: 'absolute', right: 2, bottom: 2, width: 9, height: 9, borderRadius: '50%', background: (colors ?? TPL_COLORS[template]).accent }} />
                   </span>
-                  {colors ? (COLOR_TONES.find((t) => t.bg === colors.bg && t.accent === colors.accent)?.name ?? '커스텀') : '템플릿 기본'}
+                  {colors
+                    ? (styleProfile && colors.bg === styleProfile.bg && colors.accent === styleProfile.accent
+                      ? '내 브랜드'
+                      : COLOR_TONES.find((t) => t.bg === colors.bg && t.accent === colors.accent)?.name ?? '커스텀')
+                    : '템플릿 기본'}
                   <span style={{ marginLeft: 'auto', color: 'var(--faint)' }}>▾</span>
                 </button>
                 {colorOpen && (
                   <div style={{ marginTop: 10 }}>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 6 }}>
-                      {[{ name: '기본', ...TPL_COLORS[template], isDefault: true }, ...COLOR_TONES.map((t) => ({ ...t, isDefault: false }))].map((t) => {
+                      {[
+                        { name: '기본', ...TPL_COLORS[template], isDefault: true },
+                        ...(styleProfile ? [{ name: '🎨 내 브랜드', bg: styleProfile.bg, accent: styleProfile.accent, isDefault: false }] : []),
+                        ...COLOR_TONES.map((t) => ({ ...t, isDefault: false })),
+                      ].map((t) => {
                         const sel = t.isDefault ? !colors : colors?.bg === t.bg && colors?.accent === t.accent;
                         return (
                           <button type="button" key={t.name} onClick={() => { setColors(t.isDefault ? null : { bg: t.bg, accent: t.accent }); }}
@@ -660,6 +704,15 @@ export default function Create() {
                 <div className="sum-row"><span>씬</span><b>{scenes.length}개</b></div>
                 <div className="sum-row"><span>예상 길이</span><b>{Math.round(total)}초</b></div>
                 <div className="sum-row"><span>크레딧</span><b>10</b></div>
+                {plan === 'free' ? (
+                  <div style={{ marginTop: 12, padding: '10px 12px', border: '1px solid var(--line)', borderRadius: 10 }}>
+                    <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 12.5, cursor: 'pointer', margin: 0 }}>
+                      <input type="checkbox" checked={noWm} onChange={(e) => setNoWm(e.target.checked)} style={{ width: 14, height: 14 }} />
+                      서비스 워터마크 제거 <b style={{ color: 'var(--accent)' }}>+5크레딧</b>
+                    </label>
+                    <p style={{ fontSize: 11, color: 'var(--faint)', margin: '6px 0 0' }}>무료 플랜 영상엔 "made with Autopilot" 워터마크가 붙어요. 구독하면 항상 제거됩니다.</p>
+                  </div>
+                ) : null}
                 <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
                   <button className="btn" style={{ flex: 1 }} disabled={busy} onClick={saveDraft}>
                     {savedMsg ? '✓ 저장됨' : '💾 대본 저장'}
@@ -681,7 +734,7 @@ export default function Create() {
                   </div>
                 ) : null}
                 <button className="btn primary" style={{ width: '100%', marginTop: 8 }} disabled={busy} onClick={approveRender}>
-                  {busy ? '접수 중…' : '렌더 시작 (10크레딧)'}
+                  {busy ? '접수 중…' : `렌더 시작 (${10 + (plan === 'free' && noWm ? 5 : 0)}크레딧)`}
                 </button>
               </div>
               <div className="card" style={{ padding: '16px 18px' }}>

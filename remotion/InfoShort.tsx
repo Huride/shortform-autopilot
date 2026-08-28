@@ -1323,6 +1323,7 @@ export const InfoShort: React.FC<ShortProps> = ({
   showWatermark = true,
   outroTagline = true,
   outroBg,
+  serviceWatermark = false,
 }) => {
   // Corner watermark with the tagline — stays through body scenes, builds the
   // channel's positioning line by repetition.
@@ -1496,6 +1497,29 @@ export const InfoShort: React.FC<ShortProps> = ({
 
       {taglineMark ? (
         <Sequence from={0} durationInFrames={outroStart}>{taglineMark}</Sequence>
+      ) : null}
+      {serviceWatermark ? (
+        // 무료 플랜 서비스 워터마크 — 우하단, 자막(lower 레이아웃 좌측 정렬)과 겹치지 않는 위치
+        <AbsoluteFill style={{ pointerEvents: 'none' }}>
+          <div
+            style={{
+              position: 'absolute',
+              right: 36,
+              bottom: 44,
+              fontFamily: 'system-ui, sans-serif',
+              fontSize: 27,
+              fontWeight: 700,
+              letterSpacing: '0.04em',
+              color: '#FFFFFF',
+              opacity: 0.55,
+              padding: '8px 16px',
+              borderRadius: 999,
+              backgroundColor: 'rgba(0,0,0,0.35)',
+            }}
+          >
+            ⚡ made with Autopilot
+          </div>
+        </AbsoluteFill>
       ) : null}
       {brand ? (
         <Sequence from={outroStart} durationInFrames={scenesEnd - outroStart + OUTRO_FRAMES}>

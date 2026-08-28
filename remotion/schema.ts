@@ -138,6 +138,11 @@ export type ShortProps = {
   outroTagline?: boolean;
   /** 아웃트로 배경 이미지 (remotion/public 기준 상대 경로). 없으면 테마 그라디언트. */
   outroBg?: string;
+  /**
+   * 서비스 워터마크 ("made with Autopilot"). SaaS 무료 플랜 렌더에 붙는다 —
+   * 구독 중이거나 제거 크레딧을 쓴 잡은 false. 운영자 자체 채널 렌더와 무관.
+   */
+  serviceWatermark?: boolean;
 };
 
 export const COMPOSITION_ID = 'InfoShort';

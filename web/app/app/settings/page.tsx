@@ -2,10 +2,15 @@
 import { useEffect, useState } from 'react';
 import { getSupabase } from '@/lib/supabase';
 
+type StyleProfile = { bg: string; accent: string; mood: string; artDirection: string };
+
 export default function Settings() {
   const [key, setKey] = useState('');
   const [brand, setBrand] = useState({ name: '', signoff: '', tagline: '' });
   const [brandRow, setBrandRow] = useState<string | null>(null);
+  const [styleProfile, setStyleProfile] = useState<StyleProfile | null>(null);
+  const [styleState, setStyleState] = useState<'idle' | 'analyzing' | 'ok' | 'error'>('idle');
+  const [styleMsg, setStyleMsg] = useState('');
   const [brandState, setBrandState] = useState<'idle' | 'saving' | 'ok'>('idle');
   const [status, setStatus] = useState<'none' | 'saving' | 'ok' | 'error'>('none');
   const [existing, setExisting] = useState<string | null>(null);
@@ -26,23 +31,59 @@ export default function Settings() {
       });
     sb.from('channels').select('id, config').eq('archived', false).order('created_at').limit(1).maybeSingle()
       .then(({ data }) => {
-        if (data) { setBrandRow(data.id); setBrand({ name: data.config?.name ?? '', signoff: data.config?.signoff ?? '', tagline: data.config?.tagline ?? '' }); }
+        if (data) {
+          setBrandRow(data.id);
+          setBrand({ name: data.config?.name ?? '', signoff: data.config?.signoff ?? '', tagline: data.config?.tagline ?? '' });
+          if (data.config?.styleProfile) setStyleProfile(data.config.styleProfile);
+        }
       });
   }, [status, elStatus]);
 
-  async function saveBrand(e: React.FormEvent) {
-    e.preventDefault();
+  // 브랜딩·스타일 프로필을 채널 config 에 병합 저장 (서로를 지우지 않게)
+  async function persistConfig(patch: Record<string, unknown>) {
     const sb = getSupabase(); if (!sb) return;
     const { data: { session } } = await sb.auth.getSession(); if (!session) return;
-    setBrandState('saving');
-    const config = { name: brand.name.trim(), signoff: brand.signoff.trim(), tagline: brand.tagline.trim() };
+    const config = {
+      name: brand.name.trim(), signoff: brand.signoff.trim(), tagline: brand.tagline.trim(),
+      ...(styleProfile ? { styleProfile } : {}),
+      ...patch,
+    };
     if (brandRow) await sb.from('channels').update({ config }).eq('id', brandRow);
     else {
       const { data } = await sb.from('channels').insert({ user_id: session.user.id, config }).select('id').single();
       if (data) setBrandRow(data.id);
     }
+  }
+
+  async function saveBrand(e: React.FormEvent) {
+    e.preventDefault();
+    setBrandState('saving');
+    await persistConfig({});
     setBrandState('ok');
     setTimeout(() => setBrandState('idle'), 2500);
+  }
+
+  async function learnStyle(files: FileList | null) {
+    if (!files?.length) return;
+    const sb = getSupabase(); if (!sb) return;
+    const { data: { session } } = await sb.auth.getSession(); if (!session) return;
+    setStyleState('analyzing'); setStyleMsg('');
+    try {
+      const fd = new FormData();
+      for (const f of Array.from(files).slice(0, 3)) fd.append('images', f);
+      const r = await fetch('/api/style-learn', { method: 'POST', headers: { Authorization: `Bearer ${session.access_token}` }, body: fd });
+      const j = await r.json();
+      if (!j.ok) { setStyleState('error'); setStyleMsg(j.error ?? '분석에 실패했어요.'); return; }
+      setStyleProfile(j.profile);
+      await persistConfig({ styleProfile: j.profile });
+      setStyleState('ok');
+    } catch { setStyleState('error'); setStyleMsg('분석 요청에 실패했어요.'); }
+  }
+
+  async function clearStyle() {
+    setStyleProfile(null);
+    await persistConfig({ styleProfile: undefined });
+    setStyleState('idle');
   }
 
   async function saveEl(e: React.FormEvent) {
@@ -104,8 +145,44 @@ export default function Settings() {
             {status === 'error' && <p style={{ color: 'var(--warn)', fontSize: 13, marginTop: 10 }}>{msg}</p>}
           </div>
           <div className="card set-card">
-            <h3>플랜</h3>
-            <p className="sub">무료 플랜 — 가입 크레딧 20 (영상 2편). 결제는 곧 열려요.</p>
+            <h3>🎨 스타일 학습 {styleState === 'ok' && <span className="badge ok">✓ 저장됨</span>}</h3>
+            <p className="sub">기존 채널의 썸네일·게시물 스크린샷 1~3장을 올리면 색감·무드를 분석해 내 브랜드 스타일을 만들어요. 이후 영상의 색상 톤·배경 아트 기본값이 됩니다.</p>
+            {styleProfile ? (
+              <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 12, padding: '10px 12px', border: '1px solid var(--line)', borderRadius: 10 }}>
+                <span style={{ width: 34, height: 34, borderRadius: 9, background: styleProfile.bg, border: '1px solid var(--line)', position: 'relative', flexShrink: 0 }}>
+                  <span style={{ position: 'absolute', right: 3, bottom: 3, width: 13, height: 13, borderRadius: '50%', background: styleProfile.accent }} />
+                </span>
+                <div style={{ flex: 1 }}>
+                  <b style={{ fontSize: 13 }}>{styleProfile.mood || '학습된 스타일'}</b>
+                  <div className="mono" style={{ fontSize: 11, color: 'var(--faint)' }}>{styleProfile.bg} · {styleProfile.accent}</div>
+                </div>
+                <button type="button" className="btn sm" onClick={clearStyle}>삭제</button>
+              </div>
+            ) : null}
+            <label className="btn" style={{ display: 'inline-block', cursor: 'pointer' }}>
+              {styleState === 'analyzing' ? '분석 중… (수십 초)' : styleProfile ? '다시 학습하기' : '이미지 올려서 학습하기'}
+              <input type="file" accept="image/jpeg,image/png,image/webp" multiple style={{ display: 'none' }}
+                disabled={styleState === 'analyzing'}
+                onChange={(e) => { learnStyle(e.target.files); e.target.value = ''; }} />
+            </label>
+            {styleState === 'error' && <p style={{ color: 'var(--warn)', fontSize: 12, marginTop: 8 }}>{styleMsg}</p>}
+          </div>
+          <div className="card set-card">
+            <h3>플랜 · 크레딧</h3>
+            <p className="sub">무료 플랜 — 가입 크레딧 20 (영상 2편). 무료 렌더에는 워터마크가 붙고, 편당 +5크레딧으로 제거하거나 구독하면 항상 제거돼요.</p>
+            <div style={{ display: 'flex', gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
+              {[
+                { c: 100, p: '₩4,900' },
+                { c: 300, p: '₩12,900' },
+                { c: 1000, p: '₩39,000' },
+              ].map((pkg) => (
+                <div key={pkg.c} style={{ flex: 1, minWidth: 100, padding: '10px 12px', border: '1px solid var(--line)', borderRadius: 10, textAlign: 'center' }}>
+                  <b style={{ display: 'block' }}>{pkg.c}크레딧</b>
+                  <span style={{ fontSize: 13, color: 'var(--sub)' }}>{pkg.p}</span>
+                  <span className="badge dim" style={{ display: 'block', marginTop: 6 }}>충전 준비 중</span>
+                </div>
+              ))}
+            </div>
             <div className="key-row" style={{ display: 'block' }}>
               <b>ElevenLabs {elExisting && <span className="badge ok">● 연결됨</span>}</b>
               <span className="mono" style={{ color: 'var(--faint)', display: 'block', marginBottom: 8 }}>프리미엄 보이스 — 연결하면 영상 만들기에서 EL 보이스 선택 가능</span>

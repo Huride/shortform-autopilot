@@ -25,7 +25,7 @@ export default function Home() {
           <div>
             <span className="eyebrow">Shortform Autopilot</span>
             <h1>주제 한 줄이<br /><em>매일 영상</em>이 됩니다</h1>
-            <p className="lead">뉴스 수집부터 대본, 보이스, 모션그래픽 렌더까지 — AI 에이전트가 운영하는 나만의 숏폼 채널. <b>당신은 하루 한 번 확인만 하세요.</b></p>
+            <p className="lead">대본 쓰고, 녹음하고, 자막 얹고, 컷 붙이는 <b>편당 3시간</b> — Autopilot은 <b>5분</b>으로 줄입니다. 뉴스 수집과 팩트체크 대본부터 보이스·모션그래픽 렌더까지 AI가 끝내고, 당신은 확인 버튼만 누르세요.</p>
             <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
               <Link className="mbtn primary" href="/login">무료로 시작하기</Link>
               <a className="mbtn ghost" href="#templates">템플릿 구경하기</a>
@@ -84,9 +84,20 @@ export default function Home() {
           <div className="sec-head">
             <span className="eyebrow">Pricing</span>
             <h2>커피 몇 잔 값으로, 채널 하나</h2>
-            <p>모든 플랜은 크레딧으로 씁니다 — 숏폼 1편 = 10크레딧. 부족하면 추가 구매도 가능해요.</p>
+            <p>모든 플랜은 크레딧으로 씁니다 — 숏폼 1편 = 10크레딧. 부족하면 충전으로 이어가세요 (100cr ₩4,900 · 300cr ₩12,900 · 1,000cr ₩39,000).</p>
           </div>
           <div className="price-grid">
+            <div className="price">
+              <h3>무료</h3>
+              <div className="amount"><b>₩0</b><span className="per">/월</span></div>
+              <ul>
+                <li>가입 크레딧 20 (영상 2편)</li>
+                <li>템플릿 · 에디터 전 기능</li>
+                <li>영상에 "made with Autopilot" 워터마크</li>
+                <li>워터마크 제거: 편당 +5크레딧</li>
+              </ul>
+              <Link className="mbtn ghost" href="/login">지금 시작</Link>
+            </div>
             <div className="price">
               <h3>크리에이터</h3>
               <div className="amount"><b>₩9,900</b><span className="per">/월</span></div>
@@ -94,7 +105,7 @@ export default function Home() {
                 <li>월 150크레딧 (영상 약 12편 · 주 3편 페이스)</li>
                 <li>채널 2개 · 템플릿 전체</li>
                 <li>씬 에디터 + 에이전트 수정</li>
-                <li>1080p 다운로드 · 워터마크 없음</li>
+                <li>1080p 다운로드 · <b>워터마크 항상 없음</b></li>
               </ul>
               <Link className="mbtn ghost" href="/login">무료로 시작</Link>
             </div>
@@ -122,6 +133,7 @@ export default function Home() {
             <details open><summary>정말 사람 없이 영상이 만들어지나요?</summary><p>네. 이 페이지의 영상들은 주제 한 줄 외에 사람의 편집이 전혀 들어가지 않았습니다. 다만 발행 전 확인 버튼은 당신 몫으로 남겨둡니다 — 내 채널에 뭐가 올라가는지는 내가 알아야 하니까요.</p></details>
             <details><summary>왜 내 OpenAI API 키가 필요한가요?</summary><p>AI 사용료에 마진을 붙여 되파는 대신, 원가 그대로 당신 계정에 청구되게 했습니다. 키 발급은 가이드 따라 5분이면 되고, 키는 암호화되어 저장되며 영상 생성에만 쓰입니다.</p></details>
             <details><summary>저작권이나 계정 정지 위험은 없나요?</summary><p>그래픽은 전부 코드로 그리고, 음악은 자체 제작 BGM, 실사는 상업 사용 가능한 스톡만 씁니다. 모든 영상에 AI 제작 고지가 들어가고 사실엔 출처가 붙습니다.</p></details>
+            <details><summary>기존 채널의 디자인 톤을 그대로 쓸 수 있나요?</summary><p>네 — 스타일 학습 기능이 있습니다. 기존 채널의 썸네일이나 게시물 스크린샷을 1~3장 올리면 색감·무드를 분석해 내 브랜드 스타일을 만들고, 이후 모든 영상의 색상 톤과 배경 아트가 그 스타일을 따릅니다. 한 번 가르치면 계속 적용돼요.</p></details>
             <details><summary>발행 자동화는 어떻게 가능한가요?</summary><p>자동 발행은 내 계정의 공식 API로 이뤄집니다. 유튜브는 구글 클라우드 프로젝트, 인스타그램은 메타 개발자 앱을 본인 계정으로 한 번 만들어 연결하는 설정이 필요해요 — 단계별 마법사와 스크린샷 가이드를 제공하고, 1회 20~30분이면 끝납니다. 설정 전에도 다운로드 후 직접 업로드는 즉시 가능합니다.</p></details>
           </div>
         </div>

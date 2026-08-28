@@ -48,6 +48,7 @@ export interface RenderExtras {
   showWatermark?: boolean;
   outroTagline?: boolean;
   outroBg?: string;
+  serviceWatermark?: boolean;
 }
 
 export function toShortProps(
@@ -70,6 +71,7 @@ export function toShortProps(
     ...(extras.showWatermark !== undefined ? { showWatermark: extras.showWatermark } : {}),
     ...(extras.outroTagline !== undefined ? { outroTagline: extras.outroTagline } : {}),
     ...(extras.outroBg ? { outroBg: extras.outroBg } : {}),
+    ...(extras.serviceWatermark ? { serviceWatermark: true } : {}),
     ...(extras.brandLogo ? { brandLogo: extras.brandLogo } : {}),
     scenes: script.scenes.map((scene, i) => {
       const track = byIndex.get(i);

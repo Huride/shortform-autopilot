@@ -197,7 +197,10 @@ async function fetchPage(url: string): Promise<{ title?: string; text: string } 
 }
 
 /** 사용자 채널 브랜딩 — channels 테이블 첫 행의 config {name, signoff, tagline}. */
-async function loadBranding(userId: string): Promise<{ name?: string; signoff?: string; tagline?: string }> {
+async function loadBranding(userId: string): Promise<{
+  name?: string; signoff?: string; tagline?: string;
+  styleProfile?: { bg?: string; accent?: string; artDirection?: string };
+}> {
   const r = await rest(`channels?user_id=eq.${userId}&archived=eq.false&order=created_at.asc&limit=1&select=config`);
   const [row] = await r.json();
   const c = row?.config ?? {};
@@ -205,6 +208,7 @@ async function loadBranding(userId: string): Promise<{ name?: string; signoff?: 
     name: typeof c.name === 'string' && c.name.trim() ? c.name.trim() : undefined,
     signoff: typeof c.signoff === 'string' && c.signoff.trim() ? c.signoff.trim() : undefined,
     tagline: typeof c.tagline === 'string' && c.tagline.trim() ? c.tagline.trim() : undefined,
+    styleProfile: c.styleProfile && typeof c.styleProfile === 'object' ? c.styleProfile : undefined,
   };
 }
 
@@ -389,8 +393,15 @@ async function processOne(): Promise<boolean> {
       neon: { ad: 'Dark tech field with thin neon glowing lines and circuit-like geometry, holographic accents, futuristic.' },
     };
     const styleKey = job.script?.artStyle as string | undefined;
-    const styleOv = styleKey ? ART_STYLES[styleKey] : undefined;
     const brand = await loadBranding(job.user_id);
+    // 'brand' = 스타일 학습으로 뽑은 사용자 artDirection. 프로필이 없으면 채널 기본으로 폴백.
+    const styleOv = styleKey === 'brand'
+      ? (brand.styleProfile?.artDirection ? { ad: brand.styleProfile.artDirection } : undefined)
+      : styleKey ? ART_STYLES[styleKey] : undefined;
+    // 서비스 워터마크 — 무료 플랜만, 제거 크레딧(script.noWatermark)을 안 쓴 잡에 붙는다.
+    const pr = await rest(`profiles?id=eq.${job.user_id}&select=plan`);
+    const [prow] = await pr.json();
+    const serviceWatermark = (prow?.plan ?? 'free') === 'free' && job.script?.noWatermark !== true;
     // 색상 톤 오버라이드 — 에디터에서 고른 배경/포인트 색. 글자색은 배경 밝기로 자동 결정.
     const colors = job.script?.colors as { bg?: string; accent?: string } | undefined;
     let themeOv: typeof baseChannel.theme | undefined;
@@ -481,6 +492,7 @@ async function processOne(): Promise<boolean> {
       showWatermark: watermarkOn,
       outroTagline: outroCfg.tagline !== false,
       ...(outroBg ? { outroBg } : {}),
+      serviceWatermark,
     });
     invalidateBundle(); // 새 오디오·배경이 번들 public 사본에 들어가야 한다
     const videoPath = await renderShort(job.id, props);
