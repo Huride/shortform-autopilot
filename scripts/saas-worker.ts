@@ -518,9 +518,19 @@ async function processOne(): Promise<boolean> {
 
 async function main() {
   log.info(`SaaS 워커 시작 — ${SB}`);
+  // 절전 복귀·네트워크 전환 뒤 폴링이 연속 실패하면 백오프 — 로그 폭주와 죽은
+  // keepalive 소켓 재사용을 줄인다 (연결은 시간이 지나면 undici 가 새로 연다).
+  let fails = 0;
   for (;;) {
-    try { await generateOne(); await processOne(); } catch (e) { log.error(String(e)); }
-    await new Promise((r) => setTimeout(r, 5000));
+    try {
+      await generateOne();
+      await processOne();
+      fails = 0;
+    } catch (e) {
+      fails++;
+      if (fails <= 3 || fails % 10 === 0) log.error(`${String(e)}${fails > 1 ? ` (연속 ${fails}회)` : ''}`);
+    }
+    await new Promise((r) => setTimeout(r, Math.min(5000 * (fails + 1), 60_000)));
   }
 }
 main();
