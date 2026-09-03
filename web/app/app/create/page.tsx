@@ -48,6 +48,7 @@ const ART_STYLES = [
   { id: 'watercolor', name: '수채화', desc: '번짐 · 종이 질감' },
   { id: 'neon', name: '네온 테크', desc: '빛나는 회로선' },
   { id: 'photo', name: '실사풍', desc: '사진 질감 · 인물 없음' },
+  { id: 'cartoon', name: '만평', desc: '한 컷 풍자 · 한글 문구 자동 검수' },
 ];
 const TEMPLATES = [
   { id: 'tpl-critic', name: '소비자 비판형', emph: 'box', emphName: '라벨 강조' },

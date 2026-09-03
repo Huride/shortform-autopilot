@@ -190,7 +190,9 @@ ${CRAFT}
 - Never state numbers, years, or proper nouns you are not sure of. Assert only what you know.
 - Land the ending: the final scene delivers a one-sentence conclusion that resolves
   the video's question — never a side detail, a new question, or a vague "두고 봐야"
-  fade-out. If the hook asked something, the ending answers it.`;
+  fade-out. If the hook asked something, the ending answers it.
+- The hook teases without spoiling (no verdict/key number on the first screen),
+  and every tease planted early must be explicitly repaid in the ending.`;
 
 /**
  * Opinionated/commentary channels (channel config present). Named for its origin
@@ -263,6 +265,18 @@ a judgment, a takeaway, a do-this, or the direct answer to the hook.
   is a conclusion; hedging mush is not.
 - For arc structures ending in 여운/lingering beats: the 여운 comes AFTER the
   conclusion lands, never instead of it.
+
+## Tease → payoff discipline
+- The hook TEASES, never spoils: the first screen must not reveal the verdict,
+  the key number, or the answer — it only points the direction of curiosity
+  ("오늘 이것 하나에 갈립니다" is right; naming the thing itself is a spoiler).
+- Every tease must be repaid: if the script plants an anchor early (a promised
+  number, word, or "이것 하나"), the conclusion scene must state that exact
+  value/word explicitly — a paraphrase or a forgotten tease is a broken promise
+  and the #1 cause of "낚시" comments.
+- When the take is a judgment, tilt it: commit to one reading, give the grounds
+  from the facts list, and name the single observable signal that would prove it
+  wrong. Two-sided conditionals ("A면 유리, B면 위험") are not a take.
 
 ## Titles — pick per issue type
 - **Issue-form** (when the matter is still contested): "X announced — the real

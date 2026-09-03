@@ -202,6 +202,14 @@ export function getProvider(): TtsProvider {
   return PROVIDERS[env.tts.provider()] ?? stubProvider;
 }
 
+/** TTS 발음 정규화 — 기호를 한국어 발음으로. 자막에는 영향 없다 (나레이션 입력만 변환). */
+function normalizeForSpeech(text: string): string {
+  return text
+    .replace(/([+])(?=\s?\d)/g, '플러스 ')
+    .replace(/([-−])(?=\s?\d)/g, '마이너스 ')
+    .replace(/(\d[만억천조원]?)\s?~\s?(?=\d)/g, '$1에서 ');
+}
+
 export async function synthesizeScript(
   jobId: string,
   script: Script,
@@ -222,7 +230,7 @@ export async function synthesizeScript(
       const segments: { staticPath: string; durationSec: number; text?: string }[] = [];
       for (const [k, sent] of sentences.entries()) {
         const partPath = resolve(PATHS.audio, jobId, `scene-${String(i).padStart(2, '0')}-s${k}.mp3`);
-        const r = await provider.synthesize(sent, partPath, options);
+        const r = await provider.synthesize(normalizeForSpeech(sent), partPath, options);
         if (!r.staticPath) throw new Error('문장 합성 결과에 파일 경로가 없습니다.');
         segments.push({ staticPath: r.staticPath, durationSec: r.durationSec, text: sent });
       }
@@ -237,7 +245,7 @@ export async function synthesizeScript(
       continue;
     }
     const { staticPath, durationSec } = await provider.synthesize(
-      scene.narration,
+      normalizeForSpeech(scene.narration),
       outPath,
       options,
     );

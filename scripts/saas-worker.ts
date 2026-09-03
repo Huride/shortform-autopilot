@@ -13,6 +13,7 @@ import { env } from '../src/config.js';
 import { log } from '../src/log.js';
 import { invalidateBundle, renderShort, toShortProps } from '../src/pipeline/render.js';
 import { generateBackground } from '../src/pipeline/image.js';
+import { generateCartoonBackground } from '../src/pipeline/cartoon.js';
 import { generateScript, withDisclosure } from '../src/pipeline/script.js';
 import { buildBrief } from '../src/collect/select.js';
 import type { Article } from '../src/collect/rss.js';
@@ -391,6 +392,9 @@ async function processOne(): Promise<boolean> {
       cinematic: { ad: 'Cinematic moody scene: deep gradient atmosphere, volumetric light, subtle film grain, epic but restrained.' },
       watercolor: { ad: 'Soft watercolor wash textures on dark paper: organic bleeding edges, muted palette, delicate grain.' },
       neon: { ad: 'Dark tech field with thin neon glowing lines and circuit-like geometry, holographic accents, futuristic.' },
+      // cartoon 은 공용 아트를 generateCartoonBackground 로 별도 생성한다 (아래 분기).
+      // 씬 전용('gen') 생성이 톤을 맞추도록 artDirection 도 함께 정의해 둔다.
+      cartoon: { ad: 'Dramatic Korean satirical webtoon poster style: heavy bold ink outlines, dark moody atmosphere, high contrast saturated colors, exaggerated expressions.', style: 'satire' },
     };
     const styleKey = job.script?.artStyle as string | undefined;
     const brand = await loadBranding(job.user_id);
@@ -457,7 +461,14 @@ async function processOne(): Promise<boolean> {
     let backgroundImage: string | undefined;
     if (!needsArt) log.info('  모든 씬이 실사 배경 — 채널 아트 생성 건너뜀');
     try {
-      if (needsArt) backgroundImage = await generateBackground(job.id, {
+      if (needsArt && styleKey === 'cartoon') {
+        // 만평 모드 — 장면 설계 + 한글 문구 렌더 + 비전 글자 검수 (최대 3회 시도)
+        log.info('  만평 배경 생성 (글자 검수 포함)');
+        backgroundImage = await generateCartoonBackground(job.id, {
+          headline: script.title,
+          summary: `${script.hook}\n${job.topic}\n${script.scenes.map((s) => s.narration).join(' ').slice(0, 1500)}`,
+        }, channel);
+      } else if (needsArt) backgroundImage = await generateBackground(job.id, {
         headline: script.title, summary: job.topic, angle: channel.stance.slice(0, 200),
         keywords: [], facts: [], caution: [], sources: [],
       }, channel);
