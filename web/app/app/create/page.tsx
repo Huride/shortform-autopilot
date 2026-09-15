@@ -387,7 +387,7 @@ export default function Create() {
                     {refUrls.length < 5 ? (
                       <button type="button" className="btn sm" onClick={() => setRefUrls((p) => [...p, ''])}>＋ 링크 추가</button>
                     ) : null}
-                    <p style={{ fontSize: 11.5, color: 'var(--faint)', margin: '6px 0 0' }}>넣어주신 페이지의 본문을 읽고 대본의 사실 근거로 사용해요 (최대 5개). 뉴스가 없는 노하우·제도 주제일수록 효과가 커요.</p>
+                    <p style={{ fontSize: 12, color: 'var(--faint)', margin: '6px 0 0' }}>넣어주신 페이지의 본문을 읽고 대본의 사실 근거로 사용해요 (최대 5개). 뉴스가 없는 노하우·제도 주제일수록 효과가 커요.</p>
                     <label style={{ marginTop: 16 }}>템플릿 — 왼쪽은 실제 렌더, 오른쪽은 자막 강조 스타일</label>
                     <div className="tplpick">
                       {TEMPLATES.map((t) => (
@@ -469,12 +469,12 @@ export default function Create() {
                   </div>
                   {bgOpen === i && (
                     <div className="pickgrid" style={{ margin: '0 16px 14px', gridTemplateColumns: 'repeat(auto-fill,minmax(140px,1fr))' }}>
-                      <div style={{ gridColumn: '1 / -1', fontSize: 11.5, color: 'var(--sub)', fontWeight: 700 }}>✦ 생성 — 주제에 맞춰 새로 그립니다. 스타일을 고르세요 (영상 전체 공통)</div>
+                      <div style={{ gridColumn: '1 / -1', fontSize: 12, color: 'var(--sub)', fontWeight: 700 }}>✦ 생성 — 주제에 맞춰 새로 그립니다. 스타일을 고르세요 (영상 전체 공통)</div>
                       {artOptions.map((a) => (
                         <button type="button" key={a.id || 'default'} className={`pickitem${!s.bg && artStyle === a.id ? ' sel' : ''}`}
                           onClick={() => { setArtStyle(a.id); set(i, { bg: undefined }); setBgOpen(null); }}>
                           {a.id === 'brand' && styleProfile ? (
-                            <span style={{ display: 'block', aspectRatio: '9/16', borderRadius: 7, marginBottom: 6, background: `linear-gradient(160deg, ${styleProfile.bg} 55%, ${styleProfile.accent})` }} />
+                            <span style={{ display: 'block', aspectRatio: '9/16', borderRadius: 8, marginBottom: 6, background: `linear-gradient(160deg, ${styleProfile.bg} 55%, ${styleProfile.accent})` }} />
                           ) : (
                             <img src={a.id ? `/ui/style-${a.id}.jpg` : `/ui/bgart-${template}.jpg`} alt={a.name} style={{ aspectRatio: '9/16' }} />
                           )}
@@ -483,12 +483,12 @@ export default function Create() {
                       ))}
                       <button type="button" className={`pickitem${s.bg === 'gen' ? ' sel' : ''}`}
                         onClick={() => { set(i, { bg: 'gen' }); setBgOpen(null); }}>
-                        <span style={{ aspectRatio: '9/16', display: 'grid', placeItems: 'center', background: 'var(--accent-soft)', color: 'var(--accent)', borderRadius: 7, marginBottom: 6, fontSize: 24 }}>✨</span>
+                        <span style={{ aspectRatio: '9/16', display: 'grid', placeItems: 'center', background: 'var(--accent-soft)', color: 'var(--accent)', borderRadius: 8, marginBottom: 6, fontSize: 24 }}>✨</span>
                         <b>이 씬 전용 생성</b><small>이 씬의 내용으로 별도 이미지를 새로 그려요 (+이미지 1장)</small>
                       </button>
-                      <div style={{ gridColumn: '1 / -1', fontSize: 11.5, color: 'var(--sub)', fontWeight: 700, marginTop: 4 }}>📷 실사 · 내 이미지</div>
+                      <div style={{ gridColumn: '1 / -1', fontSize: 12, color: 'var(--sub)', fontWeight: 700, marginTop: 4 }}>📷 실사 · 내 이미지</div>
                       <label className="pickitem" style={{ cursor: 'pointer' }}>
-                        <span style={{ aspectRatio: '9/16', display: 'grid', placeItems: 'center', background: 'var(--card2)', borderRadius: 7, marginBottom: 6, fontSize: 26 }}>
+                        <span style={{ aspectRatio: '9/16', display: 'grid', placeItems: 'center', background: 'var(--card2)', borderRadius: 8, marginBottom: 6, fontSize: 26 }}>
                           {uploading === i ? <span className="spinner" /> : '📤'}
                         </span>
                         <b>내 이미지</b><small>JPG·PNG 업로드 (8MB)</small>
@@ -507,7 +507,7 @@ export default function Create() {
                         <button type="button" key={r.url} className={`pickitem${s.bg === r.url ? ' sel' : ''}`}
                           onClick={() => { set(i, { bg: r.url }); setBgOpen(null); }}>
                           <img src={r.thumb} alt={r.title} style={{ aspectRatio: '9/16' }} />
-                          <b style={{ fontSize: 10.5 }}>{r.title.slice(0, 22)}</b><small>{r.license}</small>
+                          <b style={{ fontSize: 11 }}>{r.title.slice(0, 22)}</b><small>{r.license}</small>
                         </button>
                       ))}
                       {bgResults.length === 0 && bgQuery && !bgSearching && (
@@ -535,7 +535,7 @@ export default function Create() {
                 <label>생성 배경 아트 스타일</label>
                 <button type="button" className="pickbtn" onClick={() => setArtOpen(!artOpen)}>
                   {artStyle === 'brand' && styleProfile ? (
-                    <span style={{ width: 26, height: 26, borderRadius: 7, background: `linear-gradient(135deg, ${styleProfile.bg} 60%, ${styleProfile.accent})`, flexShrink: 0 }} />
+                    <span style={{ width: 26, height: 26, borderRadius: 8, background: `linear-gradient(135deg, ${styleProfile.bg} 60%, ${styleProfile.accent})`, flexShrink: 0 }} />
                   ) : (
                     <img src={artStyle ? `/ui/style-${artStyle}.jpg` : `/ui/bgart-${template}.jpg`} alt="" />
                   )}
@@ -548,7 +548,7 @@ export default function Create() {
                       <button type="button" key={a.id} className={`pickitem${artStyle === a.id ? ' sel' : ''}`}
                         onClick={() => { setArtStyle(a.id); setArtOpen(false); }}>
                         {a.id === 'brand' && styleProfile ? (
-                          <span style={{ display: 'block', aspectRatio: '9/16', borderRadius: 7, marginBottom: 6, background: `linear-gradient(160deg, ${styleProfile.bg} 55%, ${styleProfile.accent})` }} />
+                          <span style={{ display: 'block', aspectRatio: '9/16', borderRadius: 8, marginBottom: 6, background: `linear-gradient(160deg, ${styleProfile.bg} 55%, ${styleProfile.accent})` }} />
                         ) : (
                           <img src={a.id ? `/ui/style-${a.id}.jpg` : `/ui/bgart-${template}.jpg`} alt={a.name} />
                         )}
@@ -566,7 +566,7 @@ export default function Create() {
               <div className="card" style={{ padding: '14px 16px', marginBottom: 14 }}>
                 <label>색상 톤</label>
                 <button type="button" className="pickbtn" onClick={() => setColorOpen(!colorOpen)}>
-                  <span style={{ display: 'inline-block', width: 22, height: 22, borderRadius: 6, background: (colors ?? TPL_COLORS[template]).bg, border: '1px solid var(--line)', position: 'relative', flexShrink: 0 }}>
+                  <span style={{ display: 'inline-block', width: 22, height: 22, borderRadius: 8, background: (colors ?? TPL_COLORS[template]).bg, border: '1px solid var(--line)', position: 'relative', flexShrink: 0 }}>
                     <span style={{ position: 'absolute', right: 2, bottom: 2, width: 9, height: 9, borderRadius: '50%', background: (colors ?? TPL_COLORS[template]).accent }} />
                   </span>
                   {colors
@@ -587,8 +587,8 @@ export default function Create() {
                         const sel = t.isDefault ? !colors : colors?.bg === t.bg && colors?.accent === t.accent;
                         return (
                           <button type="button" key={t.name} onClick={() => { setColors(t.isDefault ? null : { bg: t.bg, accent: t.accent }); }}
-                            style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '7px 8px', borderRadius: 9, cursor: 'pointer', textAlign: 'left', background: sel ? 'var(--accent-dim, rgba(124,140,255,.12))' : 'transparent', border: sel ? '1px solid var(--accent)' : '1px solid var(--line)', color: 'var(--ink)', fontSize: 11 }}>
-                            <span style={{ width: 20, height: 20, borderRadius: 6, background: t.bg, border: '1px solid var(--line)', position: 'relative', flexShrink: 0 }}>
+                            style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '7px 8px', borderRadius: 8, cursor: 'pointer', textAlign: 'left', background: sel ? 'var(--accent-dim, rgba(124,140,255,.12))' : 'transparent', border: sel ? '1px solid var(--accent)' : '1px solid var(--line)', color: 'var(--ink)', fontSize: 11 }}>
+                            <span style={{ width: 20, height: 20, borderRadius: 8, background: t.bg, border: '1px solid var(--line)', position: 'relative', flexShrink: 0 }}>
                               <span style={{ position: 'absolute', right: 2, bottom: 2, width: 8, height: 8, borderRadius: '50%', background: t.accent }} />
                             </span>
                             {t.name}
@@ -601,12 +601,12 @@ export default function Create() {
                       <label style={{ display: 'flex', gap: 5, alignItems: 'center', cursor: 'pointer' }}>배경
                         <input type="color" value={(colors ?? TPL_COLORS[template]).bg}
                           onChange={(e) => setColors({ ...(colors ?? TPL_COLORS[template]), bg: e.target.value })}
-                          style={{ width: 30, height: 24, padding: 0, border: '1px solid var(--line)', borderRadius: 6, background: 'none', cursor: 'pointer' }} />
+                          style={{ width: 30, height: 24, padding: 0, border: '1px solid var(--line)', borderRadius: 8, background: 'none', cursor: 'pointer' }} />
                       </label>
                       <label style={{ display: 'flex', gap: 5, alignItems: 'center', cursor: 'pointer' }}>포인트
                         <input type="color" value={(colors ?? TPL_COLORS[template]).accent}
                           onChange={(e) => setColors({ ...(colors ?? TPL_COLORS[template]), accent: e.target.value })}
-                          style={{ width: 30, height: 24, padding: 0, border: '1px solid var(--line)', borderRadius: 6, background: 'none', cursor: 'pointer' }} />
+                          style={{ width: 30, height: 24, padding: 0, border: '1px solid var(--line)', borderRadius: 8, background: 'none', cursor: 'pointer' }} />
                       </label>
                     </div>
                     <p style={{ fontSize: 11, color: 'var(--faint)', margin: '8px 0 0' }}>배경·강조·진행바 색이 함께 바뀌고, 글자색은 배경 밝기에 맞춰 자동 조정돼요.</p>
@@ -637,11 +637,11 @@ export default function Create() {
                     </label>
                     {outroOn ? (
                       <div style={{ margin: '8px 0 0 23px' }}>
-                        <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 12.5, cursor: 'pointer', marginBottom: 8, color: 'var(--ink)' }}>
+                        <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 13, cursor: 'pointer', marginBottom: 8, color: 'var(--ink)' }}>
                           <input type="checkbox" checked={outroTagline} onChange={(e) => setOutroTagline(e.target.checked)} style={{ width: 14, height: 14 }} />
                           태그라인 문구 표시
                         </label>
-                        <div style={{ fontSize: 11.5, color: 'var(--faint)', marginBottom: 6 }}>아웃트로 배경</div>
+                        <div style={{ fontSize: 12, color: 'var(--faint)', marginBottom: 6 }}>아웃트로 배경</div>
                         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                           {[{ id: '', label: '테마 색상' }, { id: 'art', label: '생성 아트' }].map((o) => (
                             <button type="button" key={o.id || 'default'} onClick={() => setOutroBg(o.id)}
@@ -673,7 +673,7 @@ export default function Create() {
                   <span style={{ marginLeft: 'auto', color: 'var(--faint)' }}>▾</span>
                 </button>
                 {voiceOpen && (
-                  <div style={{ marginTop: 8, maxHeight: 260, overflow: 'auto', border: '1px solid var(--line)', borderRadius: 10 }}>
+                  <div style={{ marginTop: 8, maxHeight: 260, overflow: 'auto', border: '1px solid var(--line)', borderRadius: 12 }}>
                     <button type="button" className="nav-item" style={{ width: '100%', color: 'var(--ink)' }} onClick={() => { setVoice(''); setVoiceOpen(false); }}>채널 기본</button>
                     {OPENAI_VOICES.map((v) => (
                       <div key={v.id} className="nav-item" style={{ width: '100%', color: voice === v.id && voiceProvider === 'openai' ? 'var(--accent)' : 'var(--ink)', cursor: 'pointer' }}
@@ -706,8 +706,8 @@ export default function Create() {
                 <div className="sum-row"><span>예상 길이</span><b>{Math.round(total)}초</b></div>
                 <div className="sum-row"><span>크레딧</span><b>10</b></div>
                 {plan === 'free' ? (
-                  <div style={{ marginTop: 12, padding: '10px 12px', border: '1px solid var(--line)', borderRadius: 10 }}>
-                    <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 12.5, cursor: 'pointer', margin: 0 }}>
+                  <div style={{ marginTop: 12, padding: '10px 12px', border: '1px solid var(--line)', borderRadius: 12 }}>
+                    <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 13, cursor: 'pointer', margin: 0 }}>
                       <input type="checkbox" checked={noWm} onChange={(e) => setNoWm(e.target.checked)} style={{ width: 14, height: 14 }} />
                       서비스 워터마크 제거 <b style={{ color: 'var(--accent)' }}>+5크레딧</b>
                     </label>
@@ -723,8 +723,8 @@ export default function Create() {
                   </button>
                 </div>
                 {regenOpen ? (
-                  <div style={{ marginTop: 10, padding: 10, border: '1px solid var(--line)', borderRadius: 10 }}>
-                    <label style={{ fontSize: 11.5 }}>방향 코멘트 (선택)</label>
+                  <div style={{ marginTop: 10, padding: 10, border: '1px solid var(--line)', borderRadius: 12 }}>
+                    <label style={{ fontSize: 12 }}>방향 코멘트 (선택)</label>
                     <textarea value={regenNote} onChange={(e) => setRegenNote(e.target.value)} rows={3}
                       placeholder={'예: 요금제 비교표 중심으로 더 구체적으로\n예: 초보자 눈높이로 쉽게, 덜 공격적으로'}
                       style={{ width: '100%', marginTop: 6, fontSize: 13, resize: 'vertical' }} />
@@ -739,7 +739,7 @@ export default function Create() {
                 </button>
               </div>
               <div className="card" style={{ padding: '16px 18px' }}>
-                <p style={{ fontSize: 12.5, color: 'var(--sub)', margin: 0 }}>💡 카드 종류를 바꾸면 원본 데이터 대신 자막·강조어 기반의 기본 카드로 렌더됩니다. 원래 카드가 좋으면 그대로 두세요.</p>
+                <p style={{ fontSize: 13, color: 'var(--sub)', margin: 0 }}>💡 카드 종류를 바꾸면 원본 데이터 대신 자막·강조어 기반의 기본 카드로 렌더됩니다. 원래 카드가 좋으면 그대로 두세요.</p>
               </div>
             </div>
           </div>

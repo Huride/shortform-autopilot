@@ -80,7 +80,7 @@ export default function Publish() {
           <div className="card set-card">
             <h3>▶ YouTube <span className="badge dim">미연결</span></h3>
             <p className="sub">내 채널에 Shorts를 예약 발행합니다. 구글의 공식 API를 내 계정으로 쓰는 구조라, 아래 설정을 한 번만 해두면 됩니다 (약 20분).</p>
-            <ol style={{ fontSize: 12.5, color: 'var(--ink)', paddingLeft: 18, margin: '0 0 14px', lineHeight: 1.7 }}>
+            <ol style={{ fontSize: 13, color: 'var(--ink)', paddingLeft: 18, margin: '0 0 14px', lineHeight: 1.7 }}>
               <li>Google Cloud 콘솔에서 프로젝트 생성</li>
               <li><b>YouTube Data API v3</b> 사용 설정</li>
               <li>OAuth 동의 화면 구성 → 데스크톱/웹 클라이언트 ID 발급</li>
@@ -88,13 +88,13 @@ export default function Publish() {
             </ol>
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
               <button className="btn primary" disabled title="베타 준비 중">구글 계정으로 연결</button>
-              <span style={{ fontSize: 11.5, color: 'var(--faint)' }}>단계별 스크린샷 가이드 제공 예정</span>
+              <span style={{ fontSize: 12, color: 'var(--faint)' }}>단계별 스크린샷 가이드 제공 예정</span>
             </div>
           </div>
           <div className="card set-card">
             <h3>◎ Instagram <span className="badge dim">미연결</span></h3>
             <p className="sub">릴스 예약 발행 + 스토리 자동 공유. 인스타그램 비즈니스/크리에이터 계정과 Meta 개발자 앱이 필요합니다 (약 30분).</p>
-            <ol style={{ fontSize: 12.5, color: 'var(--ink)', paddingLeft: 18, margin: '0 0 14px', lineHeight: 1.7 }}>
+            <ol style={{ fontSize: 13, color: 'var(--ink)', paddingLeft: 18, margin: '0 0 14px', lineHeight: 1.7 }}>
               <li>인스타그램 계정을 <b>비즈니스 또는 크리에이터</b>로 전환</li>
               <li>Meta for Developers에서 앱 생성 → Instagram 제품 추가</li>
               <li>아래 버튼으로 Instagram 로그인 → 콘텐츠 게시 권한 승인</li>
@@ -102,7 +102,7 @@ export default function Publish() {
             </ol>
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
               <button className="btn primary" disabled title="베타 준비 중">Instagram으로 연결</button>
-              <span style={{ fontSize: 11.5, color: 'var(--faint)' }}>Meta 앱 심사 안내 포함 예정</span>
+              <span style={{ fontSize: 12, color: 'var(--faint)' }}>Meta 앱 심사 안내 포함 예정</span>
             </div>
           </div>
         </div>
@@ -127,7 +127,7 @@ export default function Publish() {
             <div className="field" style={{ gridColumn: '1 / -1' }}><label>주제 키워드 — 뉴스에서 이 키워드로 이슈를 찾아요 (쉼표 구분)</label>
               <input value={a.keywords} onChange={(e) => setA({ ...a, keywords: e.target.value })} placeholder="예: 통신요금, 배달앱, 전기차 보조금" /></div>
             <div className="field" style={{ gridColumn: '1 / -1' }}><label>RSS 피드 (선택, 줄바꿈 구분) — 특정 매체·블로그를 소스로 쓰고 싶을 때</label>
-              <textarea rows={2} value={a.rss} onChange={(e) => setA({ ...a, rss: e.target.value })} placeholder="https://…/rss" style={{ fontSize: 12.5 }} /></div>
+              <textarea rows={2} value={a.rss} onChange={(e) => setA({ ...a, rss: e.target.value })} placeholder="https://…/rss" style={{ fontSize: 13 }} /></div>
             <div className="field"><label>발행 대상</label>
               <div style={{ display: 'flex', gap: 14, fontSize: 13 }}>
                 <label style={{ display: 'flex', gap: 6, alignItems: 'center', margin: 0, cursor: 'pointer' }}><input type="checkbox" checked={a.targets.youtube} onChange={(e) => setA({ ...a, targets: { ...a.targets, youtube: e.target.checked } })} /> YouTube Shorts</label>
@@ -145,7 +145,7 @@ export default function Publish() {
           </div>
           <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginTop: 16 }}>
             <button className="btn primary" disabled={state === 'saving'} onClick={save}>{state === 'saving' ? '저장 중…' : state === 'ok' ? '✓ 저장됨' : '설정 저장'}</button>
-            <span style={{ fontSize: 11.5, color: 'var(--faint)' }}>지금 저장해두면 연동이 열릴 때 그대로 적용돼요.</span>
+            <span style={{ fontSize: 12, color: 'var(--faint)' }}>지금 저장해두면 연동이 열릴 때 그대로 적용돼요.</span>
           </div>
         </div>
 

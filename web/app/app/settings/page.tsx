@@ -148,8 +148,8 @@ export default function Settings() {
             <h3>🎨 스타일 학습 {styleState === 'ok' && <span className="badge ok">✓ 저장됨</span>}</h3>
             <p className="sub">기존 채널의 썸네일·게시물 스크린샷 1~3장을 올리면 색감·무드를 분석해 내 브랜드 스타일을 만들어요. 이후 영상의 색상 톤·배경 아트 기본값이 됩니다.</p>
             {styleProfile ? (
-              <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 12, padding: '10px 12px', border: '1px solid var(--line)', borderRadius: 10 }}>
-                <span style={{ width: 34, height: 34, borderRadius: 9, background: styleProfile.bg, border: '1px solid var(--line)', position: 'relative', flexShrink: 0 }}>
+              <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 12, padding: '10px 12px', border: '1px solid var(--line)', borderRadius: 12 }}>
+                <span style={{ width: 34, height: 34, borderRadius: 8, background: styleProfile.bg, border: '1px solid var(--line)', position: 'relative', flexShrink: 0 }}>
                   <span style={{ position: 'absolute', right: 3, bottom: 3, width: 13, height: 13, borderRadius: '50%', background: styleProfile.accent }} />
                 </span>
                 <div style={{ flex: 1 }}>
@@ -176,7 +176,7 @@ export default function Settings() {
                 { c: 300, p: '₩12,900' },
                 { c: 1000, p: '₩39,000' },
               ].map((pkg) => (
-                <div key={pkg.c} style={{ flex: 1, minWidth: 100, padding: '10px 12px', border: '1px solid var(--line)', borderRadius: 10, textAlign: 'center' }}>
+                <div key={pkg.c} style={{ flex: 1, minWidth: 100, padding: '10px 12px', border: '1px solid var(--line)', borderRadius: 12, textAlign: 'center' }}>
                   <b style={{ display: 'block' }}>{pkg.c}크레딧</b>
                   <span style={{ fontSize: 13, color: 'var(--sub)' }}>{pkg.p}</span>
                   <span className="badge dim" style={{ display: 'block', marginTop: 6 }}>충전 준비 중</span>
