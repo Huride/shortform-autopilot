@@ -198,7 +198,7 @@ export function weeklyDurationInFrames(props: WeeklyProps): number {
 
 /** 채널 설정에 theme 이 없을 때의 기본값. 정보형(비정치) 잡에도 쓰인다. */
 export const DEFAULT_THEME: Theme = {
-  fontStack: "'Apple SD Gothic Neo', 'Noto Sans KR', system-ui, sans-serif",
+  fontStack: "'Noto Sans KR', 'Apple SD Gothic Neo', system-ui, sans-serif",
   bg: '#0B1020',
   fg: '#F8FAFC',
   accent: '#7DD3FC',

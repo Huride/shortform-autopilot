@@ -12,6 +12,16 @@ import {
   useVideoConfig,
 } from 'remotion';
 import { OUTRO_FRAMES, type SceneVisual, type ShortProps, type ShortScene, type Theme } from './schema';
+import { loadFont } from '@remotion/fonts';
+
+// 번들 폰트 — 렌더 환경(맥/리눅스)과 무관하게 같은 글꼴. 시스템 폰트에 기대면
+// 리눅스 서버에서 *에러 없이* 기본 산세리프로 떨어져 정체성이 사라진다.
+loadFont({
+  family: 'Noto Sans KR',
+  url: staticFile('fonts/NotoSansKR.ttf'),
+  weight: '100 900',
+  format: 'truetype',
+}).catch((e) => console.warn('font load failed', e));
 
 // 후킹이 조각 문구가 아니라 질문형 주제 문장(10~18자)이라 읽을 시간을 더 준다.
 const HOOK_FRAMES = 26; // ~0.87초 — 전면 카드는 순간 치고 빠진다

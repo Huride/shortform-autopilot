@@ -20,6 +20,9 @@ importers:
       '@remotion/cli':
         specifier: ^4.0.240
         version: 4.0.506(postcss@8.5.26)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.9.3)
+      '@remotion/fonts':
+        specifier: 4.0.506
+        version: 4.0.506(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@remotion/renderer':
         specifier: ^4.0.240
         version: 4.0.506(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -494,6 +497,9 @@ packages:
     resolution: {integrity: sha512-u6Y100rmEiQpGj+vnyXihk2/0rYmPJuB4RuE/RaDh0S5hLrOwEHNSaDyeXaakDs/a+VIRnTLmIqy+xR5A2Cs7g==}
     cpu: [x64]
     os: [win32]
+
+  '@remotion/fonts@4.0.506':
+    resolution: {integrity: sha512-cXxqRwuTxLNUDaNosvmJvbN/xYZ8l+DZpSqsg4OFghE3UNa+w6n8JDoFYGV0KcbhZqJysxL/CtTjJKFcoE4ClA==}
 
   '@remotion/licensing@4.0.506':
     resolution: {integrity: sha512-uot25BO2Xhjc1y/mFyuwfEm6gGEckVd29z1ln67iI1n/sbfMKYrv5qni6OJfReH68gUamElC1VmD/tKftFicyQ==}
@@ -2209,6 +2215,13 @@ snapshots:
 
   '@remotion/compositor-win32-x64-msvc@4.0.506':
     optional: true
+
+  '@remotion/fonts@4.0.506(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+    dependencies:
+      remotion: 4.0.506(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+    transitivePeerDependencies:
+      - react
+      - react-dom
 
   '@remotion/licensing@4.0.506': {}
 

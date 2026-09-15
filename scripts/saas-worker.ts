@@ -328,7 +328,7 @@ async function processOne(): Promise<boolean> {
 
   // 클레임 (동시 워커 대비 조건부 갱신)
   const claim = await rest(`jobs?id=eq.${job.id}&status=eq.scripted`, {
-    method: 'PATCH', headers: { Prefer: 'return=representation' }, body: JSON.stringify({ status: 'voiced' }),
+    method: 'PATCH', headers: { Prefer: 'return=representation' }, body: JSON.stringify({ status: 'voiced', updated_at: new Date().toISOString() }),
   });
   if ((await claim.json()).length === 0) return true;
 
@@ -527,13 +527,31 @@ async function processOne(): Promise<boolean> {
   return true;
 }
 
+/**
+ * 고아 잡 회수 — 렌더 중 워커가 죽으면(VM 재시작·배포) 잡이 voiced 로 남는다.
+ * 30분 넘게 voiced 인 잡은 다시 scripted(승인됨) 로 돌려 재렌더한다.
+ * 렌더는 보통 5~10분이라 정상 잡을 건드릴 일은 없다.
+ */
+async function recoverOrphans(): Promise<void> {
+  const cutoff = new Date(Date.now() - 30 * 60_000).toISOString();
+  const r = await rest(`jobs?status=eq.voiced&updated_at=lt.${encodeURIComponent(cutoff)}`, {
+    method: 'PATCH', headers: { Prefer: 'return=representation' },
+    body: JSON.stringify({ status: 'scripted', error: '워커 중단으로 재시도', updated_at: new Date().toISOString() }),
+  });
+  const rows = await r.json();
+  if (rows.length) log.warn(`고아 잡 ${rows.length}건 회수 → 재렌더 대기`);
+}
+
 async function main() {
   log.info(`SaaS 워커 시작 — ${SB}`);
+  await recoverOrphans().catch((e) => log.warn(`고아 회수 실패: ${e}`));
+  let lastSweep = Date.now();
   // 절전 복귀·네트워크 전환 뒤 폴링이 연속 실패하면 백오프 — 로그 폭주와 죽은
   // keepalive 소켓 재사용을 줄인다 (연결은 시간이 지나면 undici 가 새로 연다).
   let fails = 0;
   for (;;) {
     try {
+      if (Date.now() - lastSweep > 10 * 60_000) { await recoverOrphans(); lastSweep = Date.now(); }
       await generateOne();
       await processOne();
       fails = 0;
