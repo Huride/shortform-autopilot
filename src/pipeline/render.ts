@@ -121,6 +121,8 @@ export async function renderWeekly(jobId: string, props: WeeklyProps): Promise<s
   const serveUrl = await getBundle();
   const composition = await selectComposition({
     serveUrl,
+    // 리눅스 헤드리스에서 폰트 로드 등 delayRender 가 기본 30초를 넘길 수 있다
+    timeoutInMilliseconds: 120_000,
     id: WEEKLY_COMPOSITION_ID,
     inputProps: props,
   });
@@ -135,6 +137,8 @@ export async function renderWeekly(jobId: string, props: WeeklyProps): Promise<s
   await renderMedia({
     composition,
     serveUrl,
+    // 리눅스 헤드리스에서 폰트 로드 등 delayRender 가 기본 30초를 넘길 수 있다
+    timeoutInMilliseconds: 120_000,
     codec: 'h264',
     audioCodec: 'aac',
     crf: 23,
@@ -163,6 +167,8 @@ export async function renderShort(jobId: string, props: ShortProps): Promise<str
   const serveUrl = await getBundle();
   const composition = await selectComposition({
     serveUrl,
+    // 리눅스 헤드리스에서 폰트 로드 등 delayRender 가 기본 30초를 넘길 수 있다
+    timeoutInMilliseconds: 120_000,
     id: COMPOSITION_ID,
     inputProps: props,
   });
@@ -180,6 +186,8 @@ export async function renderShort(jobId: string, props: ShortProps): Promise<str
   await renderMedia({
     composition,
     serveUrl,
+    // 리눅스 헤드리스에서 폰트 로드 등 delayRender 가 기본 30초를 넘길 수 있다
+    timeoutInMilliseconds: 120_000,
     codec: 'h264',
     audioCodec: 'aac',
     // 기본 CRF(18)는 30초에 65MB 를 만든다. 23이면 화질 차이 없이 절반 이하로

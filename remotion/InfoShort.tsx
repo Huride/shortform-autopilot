@@ -18,9 +18,9 @@ import { loadFont } from '@remotion/fonts';
 // 리눅스 서버에서 *에러 없이* 기본 산세리프로 떨어져 정체성이 사라진다.
 loadFont({
   family: 'Noto Sans KR',
-  url: staticFile('fonts/NotoSansKR.ttf'),
+  url: staticFile('fonts/NotoSansKR.woff2'),
   weight: '100 900',
-  format: 'truetype',
+  format: 'woff2',
 }).catch((e) => console.warn('font load failed', e));
 
 // 후킹이 조각 문구가 아니라 질문형 주제 문장(10~18자)이라 읽을 시간을 더 준다.
