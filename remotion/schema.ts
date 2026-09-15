@@ -16,10 +16,10 @@ export type Theme = {
   /**
    * CSS font-family 스택.
    *
-   * ⚠️ 시스템 설치 폰트에 의존한다. 렌더러를 리눅스 서버로 옮기면 BM 도현·나눔명조가
-   * 없어 두 채널이 같은 기본 산세리프로 떨어지고 — 조용히, 오류 없이 —
-   * 시각 분리가 사라진다. 서버 이전 전에 폰트 파일을 remotion/public 에 넣고
-   * @font-face 로 고정해야 한다. `pnpm cli fonts` 가 현재 설치 여부를 점검한다.
+   * ⚠️ 시스템 설치 폰트에 의존한다. 기본값은 Noto Sans KR — 렌더 VM 에는
+   * deploy/gce-setup.sh 가 Google Fonts TTF 를 ~/.fonts 에 설치한다(맥은 Apple SD
+   * Gothic Neo 로 폴백). @remotion/fonts loadFont 는 리눅스 헤드리스 셸에서
+   * delayRender 가 풀리지 않아 렌더가 타임아웃되는 문제가 있어 쓰지 않는다.
    *
    * 가짜 볼드(faux bold)를 피할 것: 나눔명조는 700 까지가 실제 굵기이고
    * 800 을 주면 합성되어 세리프가 뭉개진다.
@@ -198,7 +198,7 @@ export function weeklyDurationInFrames(props: WeeklyProps): number {
 
 /** 채널 설정에 theme 이 없을 때의 기본값. 정보형(비정치) 잡에도 쓰인다. */
 export const DEFAULT_THEME: Theme = {
-  fontStack: "'Noto Sans KR', 'Apple SD Gothic Neo', system-ui, sans-serif",
+  fontStack: "'Noto Sans KR', 'Noto Sans CJK KR', 'Apple SD Gothic Neo', system-ui, sans-serif",
   bg: '#0B1020',
   fg: '#F8FAFC',
   accent: '#7DD3FC',

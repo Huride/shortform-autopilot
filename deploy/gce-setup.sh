@@ -33,6 +33,12 @@ sudo -u "$WUSER" bash -c '
   # Remotion 브라우저 사전 다운로드 (첫 렌더 지연 방지)
   NODE_OPTIONS= npx remotion browser ensure || true
 '
+# 렌더 기본 폰트 Noto Sans KR (OFL) — 시스템 설치. 렌더러는 시스템 폰트를 family 이름으로 쓴다.
+sudo -u "$WUSER" bash -c '
+  mkdir -p ~/.fonts && [ -f ~/.fonts/NotoSansKR.ttf ] || curl -fsSL -o ~/.fonts/NotoSansKR.ttf \
+    "https://github.com/google/fonts/raw/main/ofl/notosanskr/NotoSansKR%5Bwght%5D.ttf"
+  fc-cache -f >/dev/null
+'
 fc-cache -f >/dev/null || true
 
 # systemd 유닛 (User/경로를 실제 계정으로 치환)
