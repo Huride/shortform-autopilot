@@ -9,6 +9,7 @@ User=worker
 WorkingDirectory=/home/worker/shortform-autopilot
 # .env 는 src/config.ts 가 직접 읽는다 — EnvironmentFile 불필요
 Environment=NODE_OPTIONS=
+Environment=RENDER_CONCURRENCY=100%
 Environment=REMOTION_CHROME_MODE=chrome-for-testing
 ExecStart=/usr/bin/npx tsx scripts/saas-worker.ts
 Restart=always
