@@ -95,6 +95,33 @@ const stubProvider: TtsProvider = {
   },
 };
 
+
+/**
+ * 앞 무음 제거 — 합성 음성 앞의 0.2~0.4초 공백이 첫 화면 이탈 요인(머니레이더 2026-09-10 실측).
+ * remotion 내장 ffmpeg 에는 silenceremove 가 없어 silencedetect 로 재고 -ss 로 자른다(80ms 는 남김).
+ * 문장 사이 호흡은 렌더가 트랙 길이+0.35초로 따로 주므로 여기서 잘라도 유지된다.
+ * 실패하면 null — 호출자는 원본으로 진행한다.
+ */
+function trimLeadingSilence(inputPath: string, wavOutPath: string): { staticPath: string; durationSec: number } | null {
+  const cwd = resolve(PATHS.remotionPublic, '../..');
+  try {
+    const probe = execFileSync('npx', [
+      'remotion', 'ffmpeg', '-i', inputPath, '-af', 'silencedetect=n=-45dB:d=0.05', '-f', 'null', '-',
+    ], { stdio: ['ignore', 'pipe', 'pipe'], cwd, encoding: 'utf8', env: { ...process.env, NODE_OPTIONS: '' } });
+    const first = probe.match(/silence_start: ([\d.]+)[\s\S]*?silence_end: ([\d.]+)/);
+    const leading = first && Number(first[1]) <= 0.02 ? Math.max(Number(first[2]) - 0.08, 0) : 0;
+    if (leading <= 0) return null;
+    execFileSync('npx', ['remotion', 'ffmpeg', '-ss', leading.toFixed(3), '-i', inputPath, wavOutPath, '-y'],
+      { stdio: ['ignore', 'pipe', 'pipe'], cwd, env: { ...process.env, NODE_OPTIONS: '' } });
+    const wavBytes = readFileSync(wavOutPath);
+    log.info(`  앞 무음 ${leading.toFixed(2)}s 제거`);
+    return { staticPath: relative(PATHS.remotionPublic, wavOutPath), durationSec: wavDuration(wavBytes) };
+  } catch (e) {
+    log.warn(`앞 무음 제거 실패 — 원본으로 진행: ${String(e).slice(0, 100)}`);
+    return null;
+  }
+}
+
 /** OpenAI TTS. LLM 과 같은 키를 쓴다. WAV 로 받아 길이를 정확히 잰다. */
 const openaiProvider: TtsProvider = {
   name: 'openai',
@@ -123,6 +150,8 @@ const openaiProvider: TtsProvider = {
     mkdirSync(resolve(wavPath, '..'), { recursive: true });
     writeFileSync(wavPath, bytes);
 
+    const trimmed = trimLeadingSilence(wavPath, outAbsPath.replace(/\.mp3$/, '.trim.wav'));
+    if (trimmed) return trimmed;
     return {
       staticPath: relative(PATHS.remotionPublic, wavPath),
       durationSec: wavDuration(bytes),
@@ -185,6 +214,8 @@ const elevenLabsProvider: TtsProvider = {
       }
     }
 
+    const trimmed = trimLeadingSilence(outAbsPath, outAbsPath.replace(/\.mp3$/, '.trim.wav'));
+    if (trimmed) return trimmed;
     return {
       staticPath: relative(PATHS.remotionPublic, outAbsPath),
       durationSec: measureMp3(outAbsPath, bytes.length, bitrateKbps),

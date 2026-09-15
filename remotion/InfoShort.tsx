@@ -14,7 +14,13 @@ import {
 import { OUTRO_FRAMES, type SceneVisual, type ShortProps, type ShortScene, type Theme } from './schema';
 
 // 후킹이 조각 문구가 아니라 질문형 주제 문장(10~18자)이라 읽을 시간을 더 준다.
-const HOOK_FRAMES = 26; // ~0.87초 — 전면 카드는 순간 치고 빠진다
+// 훅 카드 길이 — 고정값이 아니라 글자 수 비례. 두 채널 실측이 상충했다:
+// 머니레이더는 1.0초(타이틀 카드가 이탈 병목), 레드라인은 1.0초에 "제목을 못 읽었다"로 1.6초 복귀.
+// 결론: 짧은 훅은 빨리 치고 빠지고, 긴 훅은 읽을 시간을 준다 (10자≈1.1초, 18자≈1.5초).
+function hookFrames(text: string): number {
+  const chars = text.replace(/\s+/g, '').length;
+  return Math.round(Math.min(48, Math.max(30, 18 + chars * 1.4)));
+}
 
 /**
  * 생성 배경 이미지. 느린 켄번스 + 어둡게 덮기.
@@ -145,7 +151,9 @@ function splitCaption(scene: ShortScene): [string, string, string] {
   return [caption.slice(0, at), emphasis, caption.slice(at + emphasis.length)];
 }
 
-const Caption: React.FC<{ scene: ShortScene; theme: Theme }> = ({ scene, theme }) => {
+const Caption: React.FC<{ scene: ShortScene; theme: Theme; first?: boolean }> = ({ scene, theme, first }) => {
+  // 첫 장면 자막은 한 단계 크게 — 첫 화면에서 내용을 읽지 못하면 넘긴다 (머니레이더 2026-09-10).
+  const captionSize = first ? Math.round(theme.captionSize * 1.15) : theme.captionSize;
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   // 인포그래픽 카드가 중앙을 차지하는 장면에서는 자막을 하단으로 내린다.
@@ -215,7 +223,7 @@ const Caption: React.FC<{ scene: ShortScene; theme: Theme }> = ({ scene, theme }
       <div
         style={{
           fontFamily: theme.fontStack,
-          fontSize: theme.captionSize,
+          fontSize: captionSize,
           fontWeight: theme.captionWeight,
           lineHeight: theme.captionStyle === 'block' ? 1.5 : 1.32,
           letterSpacing: '-0.02em',
@@ -303,11 +311,12 @@ const SentenceKick: React.FC<{ kicks: number[]; theme: Theme; children: React.Re
   );
 };
 
-const Hook: React.FC<{ text: string; brand?: string; logo?: string; theme: Theme }> = ({
+const Hook: React.FC<{ text: string; brand?: string; logo?: string; theme: Theme; frames: number }> = ({
   text,
   brand,
   logo,
   theme,
+  frames: HOOK_FRAMES,
 }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
@@ -373,7 +382,9 @@ const Hook: React.FC<{ text: string; brand?: string; logo?: string; theme: Theme
   const scrim = (
     <AbsoluteFill
       style={{
-        background: `linear-gradient(180deg, ${theme.bg}A6 0%, ${theme.bg}CC 45%, ${theme.bg}E6 100%)`,
+        // 첫 프레임 밝기 — 쇼츠 피드에서 첫 프레임이 썸네일 역할을 한다. 짙은 스크림(65~90%)은
+          // 넘기기 쉽다는 실측(머니레이버 2026-09-10) → 25~55% + 액센트 글로우.
+          background: `linear-gradient(180deg, ${theme.bg}40 0%, ${theme.bg}66 45%, ${theme.bg}8C 100%)`,
         opacity: exit,
       }}
     />
@@ -1325,6 +1336,7 @@ export const InfoShort: React.FC<ShortProps> = ({
   outroBg,
   serviceWatermark = false,
 }) => {
+  const HOOK_FRAMES = hookFrames(hook);
   // Corner watermark with the tagline — stays through body scenes, builds the
   // channel's positioning line by repetition.
   const taglineMark = brandTagline && showWatermark ? (
@@ -1477,7 +1489,7 @@ export const InfoShort: React.FC<ShortProps> = ({
               <VisualCard visual={scene.visual} theme={theme} />
             )
           ) : null}
-          {scene.outro ? null : <Caption scene={scene} theme={theme} />}
+          {scene.outro ? null : <Caption scene={scene} theme={theme} first={i === 0} />}
         </Sequence>
       ))}
 
@@ -1492,7 +1504,7 @@ export const InfoShort: React.FC<ShortProps> = ({
       <Progress theme={theme} sceneCount={scenes.length} bounds={bounds} />
 
       <Sequence durationInFrames={HOOK_FRAMES}>
-        <Hook text={hook} brand={brand} logo={brandLogo} theme={theme} />
+        <Hook text={hook} brand={brand} logo={brandLogo} theme={theme} frames={HOOK_FRAMES} />
       </Sequence>
 
       {taglineMark ? (

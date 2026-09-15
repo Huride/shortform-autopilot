@@ -30,6 +30,14 @@ export interface Channel {
   speechStyle?: string[];
   /** Hook techniques the script prompt may use, with their truth conditions. */
   hooking?: string[];
+  /** 채널 실측 기반 템포 규칙 — 구조 지침과 충돌하면 이쪽이 우선 (예: 10초 규칙). */
+  pacing?: string[];
+  /** 채널별 제목 규칙 — 일반 제목 지침을 덮어쓴다 (검색어 우선, 은어 금지 등). */
+  titleRules?: string[];
+  /** 결론 장면의 어미·강도·요구 형태 규칙. */
+  verdictRules?: string[];
+  /** 훅 전략 — 'tease'(기본: 정답 숨김) / 'direct'(검색 유입 채널: 첫 화면에 이름·숫자). */
+  hookMode?: 'tease' | 'direct';
   /**
    * 이 채널의 서사 구조 — 기본 팩트체크형 구조(콜드오픈→사실→검증→현황)를
    * 통째로 대체한다. 장면 순서대로 한 줄씩.

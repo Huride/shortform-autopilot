@@ -146,6 +146,20 @@ const CRAFT = `Short-form script fundamentals:
 - Muted (captions only) and listening-only (narration only) must each work on
   their own. If they say the same sentence, one of them is wasted.
 
+**The first 10 seconds (retention curves, measured on two channels 2026-09)**
+- Viewers do not leave in the first 3 seconds — they leave at 3–12 seconds, in an
+  opening that hasn't delivered the "why" yet. The two scenes after the hook are
+  one or two sentences each and together stay under ~10 seconds: by then the
+  viewer has heard what happened and why it matters.
+- No trailer sentences: "왜 그런지 정리해드립니다", "끝까지 보시면", "지금부터
+  살펴보면", "짚어보겠습니다" spend time and carry no information. Give the
+  answer instead of announcing it.
+- Do not open with chronological backstory (전사). State the issue first; if
+  background is needed, one scene, after the point is made.
+- The first time a person, company, or product appears, attach the identifier
+  that makes them legible to someone who joined mid-video (실명+직책, 회사+업종,
+  제품+카테고리). A name alone or a title alone is not enough.
+
 **Structure**
 - **7–11 scenes, one BEAT per scene.** A beat ends whenever the narration moves
   to a new number, a new entity, or a turn ("but", "however", the reveal) —
@@ -167,6 +181,16 @@ const CRAFT = `Short-form script fundamentals:
   as the referent is in the immediately preceding scene.
 - If every scene ends in the same flat declarative cadence, it sounds like a news
   ticker. Vary the endings — statements, questions, verdicts.
+
+**Argument mechanics**
+- When linking cause to effect, walk the middle link in one sentence
+  (A → *mechanism* → B). "A 오르면 B 좋다" without the mechanism is an
+  observation, not an argument.
+- Place a counter-position right after the layer it answers, and answer it in
+  the same scene with a fact from the list — never leave a rebuttal dangling or
+  park it at the end.
+- Never write a scene that only introduces someone or something ("질문자는 OOO
+  의원입니다"). Introductions ride inside the scene that uses them.
 
 **Length and natural speech**
 - Total narration **90–130 words**. The model can't count seconds, so manage
@@ -221,6 +245,7 @@ ${channel.stance}
 ${channel.framing.map((f) => `- ${f}`).join('\n')}
 ${channel.audienceNote ? `\n## Audience\n${channel.audienceNote}\n` : ''}
 ${channel.speechStyle?.length ? `\n## Spoken style — write narration in this voice\n${channel.speechStyle.map((r) => `- ${r}`).join('\n')}\n` : ''}
+${channel.pacing?.length ? `\n## Pacing rules (measured on this channel — override the structure above where they conflict)\n${channel.pacing.map((r) => `- ${r}`).join('\n')}\n` : ''}
 ${channel.hooking?.length ? `\n## Hook techniques (each has a truth condition — violating it is a guardrail breach)\n${channel.hooking.map((r) => `- ${r}`).join('\n')}\n` : ''}
 ${channel.ttsSettings?.modelId?.startsWith('eleven_v3') ? `\n## Audio tags (narration only — NEVER in captions or titles)
 The TTS engine understands inline delivery tags. Use them sparingly (6–8 per video):
@@ -228,6 +253,11 @@ The TTS engine understands inline delivery tags. Use them sparingly (6–8 per v
 - [emphasized] immediately before a key number or deadline
 - [pause] at topic transitions
 Tags go inside the narration text only. Captions must stay clean.\n` : ''}
+## Where the stance shows (three layers, never a fourth)
+1. Which question the video picks. 2. The commentary scene(s) — the take.
+3. The commentary language in keyword stamps and captions.
+Facts stay neutral; the stance lives in those three places only.
+
 ## One video = one question
 Never cover an issue's full history, every reaction, and the outlook in one
 short. Pick **the single question viewers are most confused about right now**
@@ -266,6 +296,19 @@ a judgment, a takeaway, a do-this, or the direct answer to the hook.
 - For arc structures ending in 여운/lingering beats: the 여운 comes AFTER the
   conclusion lands, never instead of it.
 
+- Banned endings — these are stalling, not conclusions: "현재 확인된 내용은
+  여기까지입니다", "지켜봐야 합니다", "판단은 이릅니다", "논의가 필요합니다",
+  "양측 모두 …", and procedure-prescriptions ("절차를 따져야", "공개 검증이
+  답이다") — a procedure note is hedging wearing a different face. Exception:
+  a structure step that explicitly calls for a verification-status line.
+- Mark the boundary of an unconfirmed allegation with one word inside the
+  sentence ("의혹", "혐의", "고발 단계"), not with a separate hedge sentence.
+- Rotate conclusion types across videos so endings don't all sound alike:
+  responsibility-naming ("X가 답해야 한다"), principle-declaring ("Y는 지갑이
+  아니다"), the bill ("이 비용은 결국 Z가 낸다"), the demand ("A는 B해야 한다").
+  One demand, aimed at one party — two targets halve the force.
+${channel.verdictRules?.length ? `- This channel's verdict rules (override the palette above):\n${channel.verdictRules.map((r) => `  - ${r}`).join('\n')}` : ''}
+
 ## Tease → payoff discipline
 - The hook TEASES, never spoils: the first screen must not reveal the verdict,
   the key number, or the answer — it only points the direction of curiosity
@@ -277,8 +320,26 @@ a judgment, a takeaway, a do-this, or the direct answer to the hook.
 - When the take is a judgment, tilt it: commit to one reading, give the grounds
   from the facts list, and name the single observable signal that would prove it
   wrong. Two-sided conditionals ("A면 유리, B면 위험") are not a take.
+- An anchor is only something that literally reappears in the conclusion scene
+  (the same number, word, or name). Do not plant an anchor the ending won't
+  repay. And the first screen hides the anchor's *target* too — "어제 낙폭이
+  기준입니까?" gives the target away; "오늘 이것 하나에 갈립니다" does not.
+- Hiding applies to the verdict only. The cause of the event is still delivered
+  within the first 10 seconds (see pacing) — never hide the "why".
+- **Search-intent exception**: when viewers arrive by searching a specific name,
+  product, or number (공모주 청약일, 특정 종목, 요금제 이름, how-to), teasing
+  backfires — they came to confirm that value. Put the name and the key number on
+  the first screen and in the first sentence; if it isn't there within 5 seconds
+  they leave.${channel.hookMode === 'direct' ? ' **This channel is search-intent: apply the exception by default.**' : ''}
 
 ## Titles — pick per issue type
+${channel.titleRules?.length ? `This channel's title rules (override the general guidance below):\n${channel.titleRules.map((r) => `- ${r}`).join('\n')}\n` : ''}- When a declaration-form title is used and the news action itself is right by
+  this channel's stance, aim the declaration at the *cause that made the action
+  necessary*, not at the action — otherwise the title reads as criticizing the
+  fix ("국민연금은 지갑이 아니다" on a loophole-closing story sounds like an
+  attack on the closure).
+- Never leak channel-internal shorthand or jargon into titles, descriptions, or
+  hashtags — write the words a viewer would search.
 - **Issue-form** (when the matter is still contested): "X announced — the real
   question is Y"
 - **Claim-form** (when the facts clearly settle it): "X changed its terms.
@@ -288,6 +349,10 @@ Either way: no bait. The title must be answered by the video.
 ## Self-review — ask per scene
 1. Is this true (per the facts list)? 2. Does it serve the one question?
 3. Can it be said shorter? If any answer is no, cut or tighten the scene.
+Then two checks on the whole: decide the conclusion first and order scenes by
+argument, not chronology. If the conclusion feels like it jumps, the middle has a
+side-track; if a layer of the argument isn't picked up by the conclusion, the
+conclusion is under-written.
 
 ${CRAFT}
 
@@ -303,6 +368,11 @@ ${CRAFT}
   and rebut it in the channel's voice. Introducing and then countering the
   opposing view persuades better than ignoring it — and it's your defense against
   "one-sided attack" claims. The rebuttal's evidence must also come from the list.
+
+- A benefit number needs its condition in the same scene ("최대 30% 할인" without
+  "신규 가입 시 첫 달" is bait). A forecast needs a named source ("증권가는",
+  "정부는"). A scarcity frame ("아는 사람만", "지금 아니면") only when access is
+  genuinely limited — never on mainstream news.
 
 ## Never do
 ${channel.guardrails.map((g) => `- ${g}`).join('\n')}`;
