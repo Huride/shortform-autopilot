@@ -195,6 +195,9 @@ export async function renderShort(jobId: string, props: ShortProps): Promise<str
     crf: 23,
     outputLocation,
     inputProps: props,
+    // 숏폼은 짧고 메모리 부담이 작다 — 코어를 전부 쓴다 (기본값 코어/2 는
+    // 2vCPU VM 에서 동시성 1 이 되어 55초 영상에 8분이 걸렸다).
+    concurrency: '100%',
     onProgress: ({ progress }) => {
       const pct = Math.floor(progress * 100);
       if (pct >= lastLogged + 20) {
