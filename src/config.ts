@@ -114,6 +114,8 @@ export const env = {
 
   /** BCP-47 language of your content (metadata language on platforms). */
   contentLanguage: () => opt('CONTENT_LANGUAGE') ?? 'en',
+  /** 화제성 실측(유튜브 24h 조회 가점). 유튜브 OAuth 가 있을 때만 동작. BUZZ=off 로 끈다. */
+  buzz: () => (opt('BUZZ') ?? 'on') !== 'off',
   youtube: {
     enabled: () => Boolean(opt('YOUTUBE_CLIENT_ID')),
     clientId: () => required('YOUTUBE_CLIENT_ID'),

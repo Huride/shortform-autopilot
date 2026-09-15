@@ -38,6 +38,8 @@ export interface Channel {
   verdictRules?: string[];
   /** 훅 전략 — 'tease'(기본: 정답 숨김) / 'direct'(검색 유입 채널: 첫 화면에 이름·숫자). */
   hookMode?: 'tease' | 'direct';
+  /** 편성 점수 가점·감점 규칙(도메인별). 예: "부동산 정책 결정 +10", "책임자 없는 제도 일반론 −3". */
+  selectionRules?: string[];
   /**
    * 이 채널의 서사 구조 — 기본 팩트체크형 구조(콜드오픈→사실→검증→현황)를
    * 통째로 대체한다. 장면 순서대로 한 줄씩.

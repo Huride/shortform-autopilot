@@ -80,8 +80,14 @@ export interface TopicCandidate {
   channelFit: number;
   freshness: number;
   duplicateRisk: number;
+  /** 대중 관심도·화제성 1~10 (LLM 추정). 가중치가 가장 큰 축. */
+  attention?: number;
   totalScore: number;
   reason: string;
+  /** 화제성 실측용 검색어(책임 인물 실명·사건 고유명). buzz.ts 가 쓴다. */
+  searchQuery?: string;
+  /** 유튜브 24h 실측 결과 (applyBuzz 가 채움). */
+  buzz?: { query: string; videos: number; topViews: number; bonus: number };
 }
 
 /**
@@ -101,6 +107,8 @@ export interface Brief {
 }
 
 export interface Job {
+  /** 편성 슬롯 — 같은 날 같은 슬롯은 한 번만 (기본 'am'). */
+  slot?: string;
   id: string;
   /**
    * short(기본) = 데일리 숏폼 · weekly = 일요일 주간 결산 롱폼.

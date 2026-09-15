@@ -17,8 +17,9 @@ const HELP = `
 auto-rills — 시사·정보형 숏폼 자동 생성·발행
 
   일일 편성
-  pnpm cli daily --channel <id> [--dry-run] [--hours 24] [--at <ISO>]
-                                           24시간 기사 → 주제 선정 → 사실 추출 → 잡 생성
+  pnpm cli daily --channel <id> [--dry-run] [--hours 24] [--at <ISO>] [--slot am|pm] [--min-score 60]
+                                           24시간 기사 → 주제 선정(화제성 실측·중복 제외) → 사실 추출 → 잡 생성
+                                           --min-score: 1순위가 임계 미만이면 편성을 쉰다
 
   수동
   pnpm cli add "<소재>" [--channel <id>] [--at <ISO시각>]
@@ -197,6 +198,8 @@ async function main(): Promise<void> {
         windowHours: Number(flags.get('hours')) || 24,
         dryRun: flags.has('dry-run'),
         scheduledAt: flags.get('at') || undefined,
+        slot: flags.get('slot') || undefined,
+        minScore: flags.get('min-score') ? Number(flags.get('min-score')) : undefined,
       });
       break;
     }
