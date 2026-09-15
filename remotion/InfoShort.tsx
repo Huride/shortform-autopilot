@@ -1489,7 +1489,12 @@ export const InfoShort: React.FC<ShortProps> = ({
               <VisualCard visual={scene.visual} theme={theme} />
             )
           ) : null}
-          {scene.outro ? null : <Caption scene={scene} theme={theme} first={i === 0} />}
+          {scene.outro ? null : (
+                // 첫 장면 자막은 훅 카드가 빠진 뒤에 — 스크림이 옅어져 카드 뒤로 비치지 않게
+                <Sequence from={i === 0 ? HOOK_FRAMES : 0} layout="none">
+                  <Caption scene={scene} theme={theme} first={i === 0} />
+                </Sequence>
+              )}
         </Sequence>
       ))}
 
