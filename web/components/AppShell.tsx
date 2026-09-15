@@ -8,6 +8,7 @@ const NAV = [
   { href: '/app/workspace', ic: '💬', label: '워크스페이스' },
   { href: '/app/create', ic: '✚', label: '새 영상 만들기' },
   { href: '/app/library', ic: '🎞️', label: '보관함' },
+  { href: '/app/publish', ic: '📡', label: '발행 · 자동화' },
 ];
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
