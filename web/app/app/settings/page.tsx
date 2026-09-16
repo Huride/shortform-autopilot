@@ -178,7 +178,7 @@ export default function Settings() {
             {styleState === 'error' && <p style={{ color: 'var(--warn)', fontSize: 12, marginTop: 8 }}>{styleMsg}</p>}
           </div>
           <div className="card set-card">
-            <h3>플랜 · 크레딧</h3>
+            <h3>플랜 · 크레딧 <a className="btn sm" href="/app/billing" style={{ marginLeft: 'auto' }}>플랜 · 결제 →</a></h3>
             <p className="sub">무료 플랜 — 가입 크레딧 20 (영상 2편). 무료 렌더에는 워터마크가 붙고, 편당 +5크레딧으로 제거하거나 구독하면 항상 제거돼요.</p>
             <div style={{ display: 'flex', gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
               {[

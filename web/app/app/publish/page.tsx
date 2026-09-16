@@ -71,7 +71,7 @@ export default function Publish() {
             <div style={{ flex: 1, fontSize: 13 }}>
               <b>자동 발행은 오토파일럿 플랜 기능이에요.</b> 지금은 화면을 미리 둘러보고 설정을 저장해둘 수 있어요 — 플랜을 올리고 연동을 마치면 그대로 켜집니다.
             </div>
-            <a className="btn sm primary" href="/app/settings">플랜 보기</a>
+            <a className="btn sm primary" href="/app/billing">플랜 보기</a>
           </div>
         )}
 

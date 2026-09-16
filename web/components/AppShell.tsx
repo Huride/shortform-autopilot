@@ -9,6 +9,7 @@ const NAV = [
   { href: '/app/create', ic: '✚', label: '새 영상 만들기' },
   { href: '/app/library', ic: '🎞️', label: '보관함' },
   { href: '/app/publish', ic: '📡', label: '발행 · 자동화' },
+  { href: '/app/billing', ic: '💳', label: '플랜 · 결제' },
 ];
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
@@ -52,7 +53,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         <Link href="/app/settings" className={`nav-item${path.startsWith('/app/settings') ? ' active' : ''}`} style={{ textDecoration: 'none' }}><span className="ic">⚙︎</span><span className="lbl">설정 · API 키</span></Link>
         <button className="nav-item" onClick={logout}><span className="ic">↩</span><span className="lbl">로그아웃</span></button>
         <div className="rail-foot">
-          <div className="plan-pill"><span>{email ? email.split('@')[0] : '…'}</span><Link className="up-link" href="/app/settings">무료 플랜</Link></div>
+          <div className="plan-pill"><span>{email ? email.split('@')[0] : '…'}</span><Link className="up-link" href="/app/billing">무료 플랜</Link></div>
           <div style={{ fontSize: 11, marginTop: 4 }}>크레딧 <b style={{ color: 'var(--nav-active)' }}>{credits ?? '—'}</b> · 렌더 1편 = 10</div>
         </div>
       </nav>
