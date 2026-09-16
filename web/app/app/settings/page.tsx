@@ -86,6 +86,14 @@ export default function Settings() {
     setStyleState('idle');
   }
 
+  // 키 삭제 — RLS(본인 행)로 클라이언트에서 직접. 서버에는 암호문만 있고 복호화 마스터키는 서버 env 에만 있다.
+  async function removeKey(provider: 'openai' | 'elevenlabs') {
+    if (!confirm(provider === 'openai' ? 'OpenAI 키 연결을 해제할까요? 해제하면 영상을 만들 수 없어요.' : 'ElevenLabs 키 연결을 해제할까요?')) return;
+    const sb = getSupabase(); if (!sb) return;
+    await sb.from('user_keys').delete().eq('provider', provider);
+    if (provider === 'openai') { setExisting(null); setStatus('none'); } else { setElExisting(false); setElStatus('none'); }
+  }
+
   async function saveEl(e: React.FormEvent) {
     e.preventDefault();
     const sb = getSupabase(); if (!sb) return;
@@ -140,7 +148,9 @@ export default function Settings() {
             <form onSubmit={save} style={{ display: 'flex', gap: 10 }}>
               <input type="password" placeholder={existing ? '새 키로 교체하려면 입력' : 'sk-...'} value={key} onChange={(e) => setKey(e.target.value)} required />
               <button className="btn primary" style={{ flex: 'none' }} disabled={status === 'saving'}>{status === 'saving' ? '검증 중…' : existing ? '교체' : '연결'}</button>
+              {existing && <button type="button" className="btn" style={{ flex: 'none' }} onClick={() => removeKey('openai')}>해제</button>}
             </form>
+            <p style={{ fontSize: 12, color: 'var(--faint)', margin: '10px 0 0' }}>🔒 키는 서버에서 AES-256-GCM으로 암호화되어 저장되고, 영상을 만드는 순간에만 복호화돼요. 화면·로그·브라우저에는 절대 노출되지 않으며, 언제든 해제할 수 있어요.</p>
             {status === 'ok' && <p style={{ color: 'var(--ok)', fontSize: 13, marginTop: 10 }}>✓ 검증 완료 — 이제 영상을 만들 수 있어요!</p>}
             {status === 'error' && <p style={{ color: 'var(--warn)', fontSize: 13, marginTop: 10 }}>{msg}</p>}
           </div>
@@ -189,6 +199,7 @@ export default function Settings() {
               <form onSubmit={saveEl} style={{ display: 'flex', gap: 8 }}>
                 <input type="password" placeholder={elExisting ? '새 키로 교체' : 'xi-...'} value={elKey} onChange={(e) => setElKey(e.target.value)} required />
                 <button className="btn primary" style={{ flex: 'none' }} disabled={elStatus === 'saving'}>{elStatus === 'saving' ? '검증 중…' : elExisting ? '교체' : '연결'}</button>
+                {elExisting && <button type="button" className="btn" style={{ flex: 'none' }} onClick={() => removeKey('elevenlabs')}>해제</button>}
               </form>
               {elStatus === 'error' && <p style={{ color: 'var(--warn)', fontSize: 12, marginTop: 6 }}>ElevenLabs가 키를 거부했어요.</p>}
               {elStatus === 'ok' && <p style={{ color: 'var(--ok)', fontSize: 12, marginTop: 6 }}>✓ 연결 완료</p>}

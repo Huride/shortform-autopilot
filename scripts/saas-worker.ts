@@ -213,11 +213,35 @@ async function loadBranding(userId: string): Promise<{
   };
 }
 
-async function injectUserKey(userId: string) {
+/** 운영자 키 — 체험 모드용. 잡마다 사용자 키로 덮어쓰므로 시작 시점 값을 붙잡아 둔다. */
+const OPERATOR_OPENAI_KEY = process.env.OPENAI_API_KEY;
+/** 키 미등록 사용자가 운영자 키로 만들 수 있는 편수. */
+const TRIAL_LIMIT = 1;
+
+/**
+ * 잡의 OpenAI 키를 env 에 주입한다.
+ *  - 사용자 키가 있으면 그 키 (BYO)
+ *  - 없으면 체험 모드: 운영자 키로 TRIAL_LIMIT 편까지. 이미 체험 잡(script.trial)이면 같은 잡의
+ *    렌더는 계속 허용한다. 실패한 잡은 체험 횟수에 세지 않는다.
+ * 반환값 trial=true 면 호출자가 script.trial 을 기록해야 한다.
+ */
+async function injectUserKey(userId: string, job?: { id: string; script?: any }): Promise<{ trial: boolean }> {
   const kr = await rest(`user_keys?user_id=eq.${userId}&provider=eq.openai&select=key_encrypted`);
   const [krow] = await kr.json();
-  if (!krow) throw new Error('설정에서 OpenAI API 키를 먼저 연결해주세요.');
-  process.env.OPENAI_API_KEY = decrypt(krow.key_encrypted);
+  if (krow) {
+    process.env.OPENAI_API_KEY = decrypt(krow.key_encrypted);
+    return { trial: false };
+  }
+  if (!OPERATOR_OPENAI_KEY) throw new Error('설정에서 OpenAI API 키를 먼저 연결해주세요.');
+  if (!job?.script?.trial) {
+    const used = await rest(`jobs?user_id=eq.${userId}&script->>trial=eq.true&status=in.(scripted,voiced,rendered)${job ? `&id=neq.${job.id}` : ''}&select=id`);
+    if ((await used.json()).length >= TRIAL_LIMIT) {
+      throw new Error(`무료 체험 ${TRIAL_LIMIT}편을 모두 사용했어요. 설정에서 내 OpenAI API 키를 연결하면 계속 만들 수 있어요.`);
+    }
+  }
+  process.env.OPENAI_API_KEY = OPERATOR_OPENAI_KEY;
+  log.info('  체험 모드 — 운영자 키로 진행');
+  return { trial: true };
 }
 
 /** 1단계: pending 잡 → LLM 대본 생성 → scripted(미승인) 로 에디터에 넘긴다. */
@@ -232,7 +256,7 @@ async function generateOne(): Promise<boolean> {
 
   log.step(`[${job.id.slice(0, 8)}] 대본 생성 — ${job.topic}`);
   try {
-    await injectUserKey(job.user_id);
+    const { trial } = await injectUserKey(job.user_id, job);
     const template = job.script?.template ?? 'tpl-critic';
     const brand = await loadBranding(job.user_id);
     const base = loadChannel(template);
@@ -308,6 +332,7 @@ async function generateOne(): Promise<boolean> {
     }
     const script = {
       ...generated, ...kept, template, approved: false,
+      ...(trial ? { trial: true } : {}),
       ...(brief ? { factCount: brief.facts.length, newsSources: brief.sources } : {}),
     };
     await patchJob(job.id, { status: 'scripted', script, error: null });
@@ -334,7 +359,7 @@ async function processOne(): Promise<boolean> {
 
   log.step(`[${job.id.slice(0, 8)}] ${job.topic}`);
   try {
-    await injectUserKey(job.user_id);
+    await injectUserKey(job.user_id, job);
 
     // 잡 단위 TTS 설정 — 이전 잡의 env 가 남지 않게 매번 리셋
     delete process.env.TTS_PROVIDER;

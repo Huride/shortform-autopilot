@@ -104,3 +104,12 @@ end; $$;
 drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created after insert on auth.users
   for each row execute function handle_new_user();
+
+-- ---------------------------------------------------------------------------
+-- 키 보안 강화 (2026-09-16): 암호문 컬럼을 브라우저(authenticated 롤)에서 아예 읽지 못하게.
+-- RLS 는 행 단위라 본인 행의 key_encrypted 는 select 가 되는데, 마스터키 없이는 무의미해도
+-- 유출 표면을 줄인다. 워커·API 라우트는 service_role(secret key)로 접근하므로 영향 없음.
+-- Supabase SQL Editor 에서 한 번 실행.
+revoke select on public.user_keys from authenticated;
+grant select (id, user_id, provider, validated_at, last_error) on public.user_keys to authenticated;
+grant delete on public.user_keys to authenticated;   -- 설정 화면 '해제' 버튼 (RLS 로 본인 행만)

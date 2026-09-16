@@ -116,6 +116,7 @@ export default function Create() {
   const [regenNote, setRegenNote] = useState('');
   const [refUrls, setRefUrls] = useState<string[]>(['']);
   const [plan, setPlan] = useState('free');
+  const [keyState, setKeyState] = useState<'loading' | 'has' | 'trial' | 'exhausted'>('loading'); // OpenAI 키 유무·체험 소진
   const [noWm, setNoWm] = useState(false); // 무료 플랜: 워터마크 제거 옵션 (+5cr)
   const [styleProfile, setStyleProfile] = useState<{ bg: string; accent: string; mood?: string; artDirection?: string } | null>(null);
   const fullConfig = useRef<Record<string, unknown>>({}); // 브랜딩 저장 시 styleProfile 등 다른 config 를 지우지 않기 위한 원본
@@ -137,6 +138,13 @@ export default function Create() {
         }
       });
     sb.from('profiles').select('plan').maybeSingle().then(({ data }) => { if (data?.plan) setPlan(data.plan); });
+    // 키 미등록이면 체험(운영자 키) 1편 — 이미 체험 잡이 있으면 등록 안내
+    (async () => {
+      const { data: keys } = await sb.from('user_keys').select('provider').eq('provider', 'openai');
+      if (keys && keys.length) { setKeyState('has'); return; }
+      const { data: trials } = await sb.from('jobs').select('id').eq('script->>trial', 'true').in('status', ['scripted', 'voiced', 'rendered']);
+      setKeyState((trials?.length ?? 0) >= 1 ? 'exhausted' : 'trial');
+    })();
   }, []);
   const [bgQuery, setBgQuery] = useState('');
   const [bgResults, setBgResults] = useState<{ url: string; thumb: string; title: string; license: string }[]>([]);
@@ -372,6 +380,16 @@ export default function Create() {
               ) : (
                 <>
                   <div className="card topic-box">
+                    {keyState === 'trial' ? (
+                      <div style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '12px 16px', borderRadius: 12, background: 'var(--info-soft)', color: 'var(--info)', fontSize: 13, marginBottom: 16 }}>
+                        <span>🎁</span><div><b>첫 1편은 API 키 없이 무료 체험</b> — 대본·음성·이미지·렌더까지 저희 키로 만들어드려요. 이후엔 설정에서 내 OpenAI 키를 연결하면 계속 쓸 수 있어요.</div>
+                      </div>
+                    ) : keyState === 'exhausted' ? (
+                      <div style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '12px 16px', borderRadius: 12, background: 'var(--caution-soft)', color: 'var(--caution)', fontSize: 13, marginBottom: 16 }}>
+                        <span>🔑</span><div style={{ flex: 1 }}><b>무료 체험 1편을 사용했어요.</b> 계속 만들려면 내 OpenAI API 키를 연결해주세요 — 사용료는 내 계정에 직접 청구되고 키는 암호화되어 저장돼요.</div>
+                        <a className="btn sm primary" href="/app/settings">키 연결하기</a>
+                      </div>
+                    ) : null}
                     <label>무엇에 대한 영상인가요?</label>
                     <textarea placeholder="주제를 한 줄로 적어주세요 — 예: 아이폰 신모델 가격, 오를까?" value={topic} onChange={(e) => setTopic(e.target.value)} />
                     <label style={{ marginTop: 16 }}>참고자료 링크 (선택)</label>
@@ -401,7 +419,7 @@ export default function Create() {
                       ))}
                     </div>
                     <div style={{ display: 'flex', marginTop: 16 }}>
-                      <button className="btn primary" style={{ marginLeft: 'auto' }} disabled={!topic.trim()} onClick={() => startGenerate(topic.trim())}>✦ 대본 만들기</button>
+                      <button className="btn primary" style={{ marginLeft: 'auto' }} disabled={!topic.trim() || keyState === 'exhausted'} onClick={() => startGenerate(topic.trim())}>✦ 대본 만들기</button>
                     </div>
                     {genError && <p style={{ color: 'var(--warn)', fontSize: 13, marginTop: 10 }}>{genError}</p>}
                     <p style={{ fontSize: 12, color: 'var(--faint)', margin: '12px 0 0' }}>대본 생성은 무료 · 크레딧은 렌더할 때만 사용돼요 (1편 = 10)</p>
