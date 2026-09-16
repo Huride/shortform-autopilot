@@ -4,7 +4,7 @@
 create table if not exists profiles (
   id uuid primary key references auth.users(id) on delete cascade,
   plan text not null default 'free' check (plan in ('free','creator','autopilot')),
-  credits int not null default 20,           -- 가입 보너스
+  credits int not null default 50,           -- 가입 보너스 (2026-09-16: 20→50, 체험 1편은 별도)
   credits_reset_at timestamptz,
   created_at timestamptz not null default now()
 );
@@ -113,3 +113,7 @@ create trigger on_auth_user_created after insert on auth.users
 revoke select on public.user_keys from authenticated;
 grant select (id, user_id, provider, validated_at, last_error) on public.user_keys to authenticated;
 grant delete on public.user_keys to authenticated;   -- 설정 화면 '해제' 버튼 (RLS 로 본인 행만)
+
+-- 무료 플랜 크레딧 상향 (2026-09-16): 신규 가입 50크레딧. 기존 무료 사용자에게도 30 보정.
+alter table public.profiles alter column credits set default 50;
+update public.profiles set credits = credits + 30 where plan = 'free' and credits <= 20;

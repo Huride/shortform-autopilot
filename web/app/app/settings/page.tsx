@@ -179,7 +179,7 @@ export default function Settings() {
           </div>
           <div className="card set-card">
             <h3>플랜 · 크레딧 <a className="btn sm" href="/app/billing" style={{ marginLeft: 'auto' }}>플랜 · 결제 →</a></h3>
-            <p className="sub">무료 플랜 — 가입 크레딧 20 (영상 2편). 무료 렌더에는 워터마크가 붙고, 편당 +5크레딧으로 제거하거나 구독하면 항상 제거돼요.</p>
+            <p className="sub">무료 플랜 — 가입 크레딧 50 (영상 5편) + API 키 없이 첫 1편 체험. 무료 렌더에는 워터마크가 붙고, 편당 +5크레딧으로 제거하거나 구독하면 항상 제거돼요.</p>
             <div style={{ display: 'flex', gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
               {[
                 { c: 100, p: '₩4,900' },

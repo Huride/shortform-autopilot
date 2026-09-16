@@ -91,7 +91,8 @@ export default function Home() {
               <h3>무료</h3>
               <div className="amount"><b>₩0</b><span className="per">/월</span></div>
               <ul>
-                <li>가입 크레딧 20 (영상 2편)</li>
+                <li>가입 크레딧 50 (영상 5편)</li>
+                <li>API 키 없이 첫 1편 무료 체험</li>
                 <li>템플릿 · 에디터 전 기능</li>
                 <li>영상에 "made with Autopilot" 워터마크</li>
                 <li>워터마크 제거: 편당 +5크레딧</li>

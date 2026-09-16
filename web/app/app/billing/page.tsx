@@ -7,7 +7,7 @@ import { getSupabase } from '@/lib/supabase';
  * 현재 플랜·크레딧·사용 내역은 실제 데이터(profiles, jobs)를 읽는다.
  */
 const PLANS = [
-  { id: 'free', name: '무료', price: '₩0', per: '', credits: '가입 20크레딧', bullets: ['템플릿·에디터 전 기능', '"made with Autopilot" 워터마크', '워터마크 제거 편당 +5크레딧'] },
+  { id: 'free', name: '무료', price: '₩0', per: '', credits: '가입 50크레딧 (약 5편)', bullets: ['API 키 없이 첫 1편 무료 체험', '템플릿·에디터 전 기능', '"made with Autopilot" 워터마크', '워터마크 제거 편당 +5크레딧'] },
   { id: 'creator', name: '크리에이터', price: '₩9,900', per: '/월', credits: '월 150크레딧 (약 12편)', bullets: ['채널 2개 · 템플릿 전체', '씬 에디터 + 에이전트 수정', '1080p · 워터마크 항상 없음'] },
   { id: 'autopilot', name: '오토파일럿', price: '₩29,000', per: '/월', credits: '월 500크레딧 (약 40편)', bullets: ['채널 5개', '유튜브·인스타 자동 예약 발행', '매일 자동 편성 + 주간 결산'], hot: true },
 ];
