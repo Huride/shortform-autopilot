@@ -91,7 +91,7 @@ export default function Home() {
               <h3>무료</h3>
               <div className="amount"><b>₩0</b><span className="per">/월</span></div>
               <ul>
-                <li>가입 크레딧 50 (영상 5편)</li>
+                <li>가입 시 1회 크레딧 50 (영상 5편 · 갱신 없음)</li>
                 <li>API 키 없이 첫 1편 무료 체험</li>
                 <li>템플릿 · 에디터 전 기능</li>
                 <li>영상에 "made with Autopilot" 워터마크</li>
@@ -103,7 +103,7 @@ export default function Home() {
               <h3>크리에이터</h3>
               <div className="amount"><b>₩9,900</b><span className="per">/월</span></div>
               <ul>
-                <li>월 150크레딧 (영상 약 12편 · 주 3편 페이스)</li>
+                <li>매월 150크레딧 갱신 (영상 약 12편 · 주 3편 페이스)</li>
                 <li>채널 2개 · 템플릿 전체</li>
                 <li>씬 에디터 + 에이전트 수정</li>
                 <li>1080p 다운로드 · <b>워터마크 항상 없음</b></li>
@@ -115,7 +115,7 @@ export default function Home() {
               <h3>오토파일럿</h3>
               <div className="amount"><b>₩29,000</b><span className="per">/월</span></div>
               <ul>
-                <li>월 500크레딧 (영상 약 40편 · 매일 1편 + 여유)</li>
+                <li>매월 500크레딧 갱신 (영상 약 40편 · 매일 1편 + 여유)</li>
                 <li>채널 5개</li>
                 <li>유튜브 · 인스타 자동 예약 발행 + 검증</li>
                 <li>매일 자동 편성 (뉴스 → 주제 → 영상)</li>
