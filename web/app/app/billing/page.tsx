@@ -17,15 +17,25 @@ export default function Billing() {
   const [plan, setPlan] = useState('free');
   const [credits, setCredits] = useState<number | null>(null);
   const [renders, setRenders] = useState<{ topic: string; at: string; noWm: boolean }[]>([]);
+  const [page, setPage] = useState(0);          // 사용 내역 10건 단위 페이징
+  const [total, setTotal] = useState(0);
+  const PAGE = 10;
 
   useEffect(() => {
     const sb = getSupabase(); if (!sb) return;
     sb.from('profiles').select('plan, credits').maybeSingle().then(({ data }) => {
       if (data) { setPlan(data.plan ?? 'free'); setCredits(data.credits ?? 0); }
     });
-    sb.from('jobs').select('topic, updated_at, script').eq('status', 'rendered').order('updated_at', { ascending: false }).limit(20)
-      .then(({ data }) => setRenders((data ?? []).map((j: any) => ({ topic: j.topic, at: j.updated_at, noWm: j.script?.noWatermark === true }))));
   }, []);
+  useEffect(() => {
+    const sb = getSupabase(); if (!sb) return;
+    sb.from('jobs').select('topic, updated_at, script', { count: 'exact' }).eq('status', 'rendered')
+      .order('updated_at', { ascending: false }).range(page * PAGE, page * PAGE + PAGE - 1)
+      .then(({ data, count }) => {
+        setTotal(count ?? 0);
+        setRenders((data ?? []).map((j: any) => ({ topic: j.topic, at: j.updated_at, noWm: j.script?.noWatermark === true })));
+      });
+  }, [page]);
 
   return (
     <section className="screen active" style={{ display: 'flex' }}>
@@ -84,6 +94,15 @@ export default function Billing() {
               <b style={{ fontVariantNumeric: 'tabular-nums', minWidth: 64, textAlign: 'right' }}>−{r.noWm ? 15 : 10}</b>
             </div>
           ))}
+          {total > PAGE && (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 20px', borderTop: '1px solid var(--line)', fontSize: 13, color: 'var(--sub)' }}>
+              <span>{page * PAGE + 1}–{Math.min((page + 1) * PAGE, total)} / {total}건</span>
+              <span style={{ display: 'flex', gap: 8 }}>
+                <button className="btn sm" disabled={page === 0} onClick={() => setPage(page - 1)}>이전</button>
+                <button className="btn sm" disabled={(page + 1) * PAGE >= total} onClick={() => setPage(page + 1)}>다음</button>
+              </span>
+            </div>
+          )}
         </div>
 
         <h2 style={{ fontSize: 14, margin: '0 0 12px', color: 'var(--sub)' }}>결제 내역</h2>
