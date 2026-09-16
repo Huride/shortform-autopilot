@@ -160,6 +160,16 @@ export async function renderWeekly(jobId: string, props: WeeklyProps): Promise<s
   return outputLocation;
 }
 
+/** RENDER_CONCURRENCY — "2" 같은 숫자 문자열은 숫자로, "100%" 는 그대로. 잘못된 값이면 기본 50%.
+ *  (문자열 "2" 를 그대로 넘기면 Remotion 내부에서 'Invalid array length' 로 렌더가 죽는다 — 2026-09-16 실장애) */
+function renderConcurrency(): number | string {
+  const v = process.env.RENDER_CONCURRENCY?.trim();
+  if (!v) return '50%';
+  if (/^\d+$/.test(v)) return Math.max(1, Number(v));
+  if (/^\d+%$/.test(v)) return v;
+  return '50%';
+}
+
 export async function renderShort(jobId: string, props: ShortProps): Promise<string> {
   mkdirSync(PATHS.out, { recursive: true });
   const outputLocation = resolve(PATHS.out, `${jobId}.mp4`);
@@ -197,7 +207,7 @@ export async function renderShort(jobId: string, props: ShortProps): Promise<str
     inputProps: props,
     // 렌더 동시성 — 전용 VM 은 100%, 다른 렌더(머니레이더 launchd)와 머신을 나눠 쓰는
     // 맥북은 기본 50%(=Remotion 기본값). 2vCPU VM 에서 기본값은 동시성 1 → 8분/편.
-    concurrency: process.env.RENDER_CONCURRENCY ?? '50%',
+    concurrency: renderConcurrency(),
     onProgress: ({ progress }) => {
       const pct = Math.floor(progress * 100);
       if (pct >= lastLogged + 20) {
