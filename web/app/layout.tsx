@@ -6,10 +6,12 @@ export const metadata: Metadata = {
   description: 'AI 에이전트가 운영하는 나만의 숏폼 채널. 대본·보이스·모션그래픽 렌더까지 자동으로.',
 };
 
+import { Analytics } from '@vercel/analytics/next';
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="ko">
-      <body>{children}</body>
+      <body>{children}<Analytics /></body>
     </html>
   );
 }

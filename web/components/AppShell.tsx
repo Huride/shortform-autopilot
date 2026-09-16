@@ -4,6 +4,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { getSupabase } from '@/lib/supabase';
 
+const ADMIN_EMAILS = ['johan@gccompany.co.kr', 'hsyangjohan@gmail.com'];
 const NAV = [
   { href: '/app/workspace', ic: '💬', label: '워크스페이스' },
   { href: '/app/create', ic: '✚', label: '새 영상 만들기' },
@@ -49,6 +50,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             <span className="ic">{n.ic}</span><span className="lbl">{n.label}</span>
           </Link>
         ))}
+        {email && ADMIN_EMAILS.includes(email) && (
+          <Link href="/app/admin" className={`nav-item${path.startsWith('/app/admin') ? ' active' : ''}`} style={{ textDecoration: 'none' }}><span className="ic">📈</span><span className="lbl">운영 통계</span></Link>
+        )}
         <div className="nav-sec">계정</div>
         <Link href="/app/settings" className={`nav-item${path.startsWith('/app/settings') ? ' active' : ''}`} style={{ textDecoration: 'none' }}><span className="ic">⚙︎</span><span className="lbl">설정 · API 키</span></Link>
         <button className="nav-item" onClick={logout}><span className="ic">↩</span><span className="lbl">로그아웃</span></button>
