@@ -8,10 +8,10 @@ import { getSupabase } from '@/lib/supabase';
  */
 const PLANS = [
   { id: 'free', name: '무료', price: '₩0', per: '', credits: '가입 시 1회 50크레딧 (약 5편 · 갱신 없음)', bullets: ['API 키 없이 첫 1편 무료 체험', '템플릿·에디터 전 기능', '"made with Autopilot" 워터마크', '워터마크 제거 편당 +5크레딧'] },
-  { id: 'creator', name: '크리에이터', price: '₩9,900', per: '/월', credits: '매월 150크레딧 갱신 (약 12편)', bullets: ['채널 2개 · 템플릿 전체', '씬 에디터 + 에이전트 수정', '1080p · 워터마크 항상 없음'] },
-  { id: 'autopilot', name: '오토파일럿', price: '₩29,000', per: '/월', credits: '매월 500크레딧 갱신 (약 40편)', bullets: ['채널 5개', '유튜브·인스타 자동 예약 발행', '매일 자동 편성 + 주간 결산'], hot: true },
+  { id: 'creator', name: '크리에이터', price: '₩4,900', per: '/월', credits: '매월 200크레딧 갱신 (약 20편)', bullets: ['채널 2개 · 템플릿 전체', '씬 에디터 + 에이전트 수정', '1080p · 워터마크 항상 없음'] },
+  { id: 'autopilot', name: '오토파일럿', price: '₩14,900', per: '/월', credits: '매월 500크레딧 갱신 (약 40편)', bullets: ['채널 5개', '유튜브·인스타 자동 예약 발행', '매일 자동 편성 + 주간 결산'], hot: true },
 ];
-const PACKS = [{ c: 100, p: '₩4,900' }, { c: 300, p: '₩12,900' }, { c: 1000, p: '₩39,000' }];
+const PACKS = [{ c: 100, p: '₩3,900' }, { c: 300, p: '₩9,900' }, { c: 1000, p: '₩29,000' }];
 
 export default function Billing() {
   const [plan, setPlan] = useState('free');
@@ -69,7 +69,7 @@ export default function Billing() {
             </div>
           ))}
         </div>
-        <p style={{ fontSize: 12, color: 'var(--faint)', margin: '-16px 0 28px', maxWidth: 1080 }}>얼리액세스 첫 달 30% 할인이 적용될 예정이에요 (크리에이터 ₩6,930 · 오토파일럿 ₩20,300). 연간 결제 할인은 결제 오픈과 함께 안내합니다.</p>
+        <p style={{ fontSize: 12, color: 'var(--faint)', margin: '-16px 0 28px', maxWidth: 1080 }}>얼리액세스 첫 달 30% 할인이 적용될 예정이에요 (크리에이터 ₩3,430 · 오토파일럿 ₩10,430). 연간 결제 할인은 결제 오픈과 함께 안내합니다.</p>
 
         <h2 style={{ fontSize: 14, margin: '0 0 12px', color: 'var(--sub)' }}>크레딧 충전 (구독과 별개 · 소멸 없음)</h2>
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', maxWidth: 1080, marginBottom: 28 }}>

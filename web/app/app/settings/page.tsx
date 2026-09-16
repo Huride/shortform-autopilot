@@ -182,9 +182,9 @@ export default function Settings() {
             <p className="sub">무료 플랜 — 가입 시 1회 크레딧 50 (영상 5편, 갱신 없음) + API 키 없이 첫 1편 체험. 구독하면 매월 크레딧이 갱신돼요. 무료 렌더에는 워터마크가 붙고, 편당 +5크레딧으로 제거하거나 구독하면 항상 제거돼요.</p>
             <div style={{ display: 'flex', gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
               {[
-                { c: 100, p: '₩4,900' },
-                { c: 300, p: '₩12,900' },
-                { c: 1000, p: '₩39,000' },
+                { c: 100, p: '₩3,900' },
+                { c: 300, p: '₩9,900' },
+                { c: 1000, p: '₩29,000' },
               ].map((pkg) => (
                 <div key={pkg.c} style={{ flex: 1, minWidth: 100, padding: '10px 12px', border: '1px solid var(--line)', borderRadius: 12, textAlign: 'center' }}>
                   <b style={{ display: 'block' }}>{pkg.c}크레딧</b>
