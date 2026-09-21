@@ -28,7 +28,7 @@ export default function Home() {
             <p className="lead">대본 쓰고, 녹음하고, 자막 얹고, 컷 붙이는 <b>편당 3시간</b> — Autopilot은 <b>5분</b>으로 줄입니다. 뉴스 수집과 팩트체크 대본부터 보이스·모션그래픽 렌더까지 AI가 끝내고, 당신은 확인 버튼만 누르세요.</p>
             <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
               <Link className="mbtn primary" href="/login">무료로 시작하기</Link>
-              <a className="mbtn ghost" href="#templates">템플릿 구경하기</a>
+              <Link className="mbtn ghost" href="/showcase">완성 영상 보기</Link>
             </div>
             <p style={{ color: 'var(--faint)', fontSize: 13, marginTop: 18 }}>가입 즉시 첫 영상 무료 · 카드 등록 없음</p>
           </div>
